@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 
 void main() {
   runApp(const MyApp());
@@ -56,17 +57,10 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+  double scale = 1.0;
+  double rotateX = 0.0;
+  double rotateZ = 0.0;
+  bool mirror = false;
 
   @override
   Widget build(BuildContext context) {
@@ -105,21 +99,49 @@ class _MyHomePageState extends State<MyHomePage> {
           // wireframe for each widget.
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
+            Transform(
+              alignment: Alignment.topRight,
+              transform: Matrix4.rotationZ(rotateZ)
+                ..rotateX(rotateX)
+                ..scale(scale)
+                ..rotateY(mirror ? math.pi : 0),
+              child: Container(
+                padding: const EdgeInsets.all(8.0),
+                color: const Color(0xFFE8581C),
+                child: Image.network('https://picsum.photos/250?image=8'),
+              ),
             ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
+            Slider(
+                value: rotateX,
+                onChanged: (RotateX) {
+                  setState(() {
+                    rotateX = RotateX;
+                  });
+                }),
+            Slider(
+                value: rotateZ,
+                onChanged: (RotateZ) {
+                  setState(() {
+                    rotateZ = RotateZ;
+                  });
+                }),
+            Checkbox(
+                value: mirror,
+                onChanged: (Mirror) {
+                  setState(() {
+                    mirror = Mirror ?? false;
+                  });
+                }),
+            Slider(
+                value: scale,
+                onChanged: (Scale) {
+                  setState(() {
+                    scale = Scale;
+                  });
+                }),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
