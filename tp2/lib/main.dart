@@ -56,7 +56,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
   double scale = 1.0;
   double rotateX = 0.0;
   double rotateZ = 0.0;
@@ -107,7 +106,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 ..rotateY(mirror ? math.pi : 0),
               child: Container(
                 padding: const EdgeInsets.all(8.0),
-                color: const Color(0xFFE8581C),
                 child: Image.network('https://picsum.photos/250?image=8'),
               ),
             ),
