@@ -17,7 +17,7 @@ class StorageService {
 
     if (id == -1) {
       // Generate a new id
-      id = ids.isEmpty ? 1 : ids.length;
+      id = ids.isEmpty ? 1 : ids.length + 1;
       ids.add(id.toString());
       await _setGameIds(prefs, ids);
     }
