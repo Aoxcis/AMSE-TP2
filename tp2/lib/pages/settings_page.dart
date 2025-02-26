@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'package:tp2/widgets/app_bar.dart';
 import 'package:tp2/widgets/nav_bar.dart';
 import 'package:settings_ui/settings_ui.dart';
-import 'package:app_settings/app_settings.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -37,7 +38,13 @@ class _SettingsPageState extends State<SettingsPage> {
               title: Text('Autorisations'),
               leading: Icon(Icons.security),
               onPressed: (BuildContext context) {
-                AppSettings.openAppSettings();
+                Future<void> openAppSettings() async {
+                  if (Platform.isAndroid || Platform.isIOS) {
+                    await launchUrl(Uri.parse('app-settings:'));
+                  }
+                }
+
+                openAppSettings();
               },
             ),
           ],
