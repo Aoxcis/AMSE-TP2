@@ -11,41 +11,43 @@ class StorageService {
   // Internal constructor
   StorageService._internal();
 
-  final Map<String, dynamic> _cache = {};
-  final Map<String, DateTime> _cacheExpiry = {};
-  final Duration cacheDuration = const Duration(hours: 1);
-
-  Future<void> _loadCache() async {
+  Future<int> saveGame(int id, Map<String, dynamic> settings, Map<String, dynamic> current) async {
     final prefs = await SharedPreferences.getInstance();
-    final cacheString = prefs.getString('cache');
-    if (cacheString != null) {
-      final cacheData = json.decode(cacheString) as Map<String, dynamic>;
-      _cache.addAll(cacheData);
+    List<String> ids = await _getGameIds(prefs);
+
+    if (id == -1) {
+      // Generate a new id
+      id = ids.isEmpty ? 1 : ids.length;
+      ids.add(id.toString());
+      await _setGameIds(prefs, ids);
     }
-    final cacheExpiryString = prefs.getString('cacheExpiry');
-    if (cacheExpiryString != null) {
-      final cacheExpiryData =
-          json.decode(cacheExpiryString) as Map<String, dynamic>;
-      cacheExpiryData.forEach((key, value) {
-        _cacheExpiry[key] = DateTime.parse(value);
-      });
-    }
+
+    final key = 'game-$id';
+    final data = {
+      'settings': settings,
+      'current': current,
+    };
+    final dataString = json.encode(data);
+    await prefs.setString(key, dataString);
+    return id;
   }
 
-  Future<void> _saveCache() async {
+  Future<List<String>> _getGameIds(SharedPreferences prefs) async {
+    return prefs.getStringList('game-ids') ?? [];
+  }
+
+  Future<void> _setGameIds(SharedPreferences prefs, List<String> ids) async {
+    await prefs.setStringList('game-ids', ids);
+  }
+
+  Future<Map<String, dynamic>> loadGame(int id) async {
     final prefs = await SharedPreferences.getInstance();
-    prefs.setString('cache', json.encode(_cache));
-    final cacheExpiryData = _cacheExpiry.map(
-      (key, value) => MapEntry(key, value.toIso8601String()),
-    );
-    prefs.setString('cacheExpiry', json.encode(cacheExpiryData));
+    final key = 'game-$id';
+    final dataString = prefs.getString(key);
+    if (dataString == null) {
+      return {};
+    }
+    final data = json.decode(dataString) as Map<String, dynamic>;
+    return data;
   }
-
-  Future<void> saveGame(WidgetPlateau board, Duration time, int score,  ) async {
-  }
-
-  Future<dynamic> loadGame(String key) async {
-  }
-
-  
 }
