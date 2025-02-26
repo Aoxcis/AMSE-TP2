@@ -2,63 +2,93 @@ import 'package:flutter/material.dart';
 import 'dart:typed_data';
 import 'package:tp2/widgets/app_bar.dart';
 import 'package:tp2/services/storage.dart';
+import 'dart:convert';
 
 class GamePage extends StatefulWidget {
-  final Map<String, dynamic> gameData;
+  final int gameId;
   
-  const GamePage({super.key, required this.gameData});
+  const GamePage({super.key, required this.gameId});
 
   @override
   State<GamePage> createState() => _GamePageState();
 }
 
 class _GamePageState extends State<GamePage> {
-  late List<int> currentGrid;
-  late List<Uint8List> imageTiles;
-  late int gridSize;
-  late int moveCount;
-  late bool isCompleted;
+  List<int> currentGrid = [];
+  List<Uint8List> imageTiles = [];
+  int gridSize = 3;
+  int moveCount = 0;
+  bool isCompleted = false;
+  Map<String, dynamic> settings = {};
   final StorageService _storage = StorageService();
+  bool _isLoading = true;
+  String _errorMessage = '';
 
   @override
   void initState() {
-  super.initState();
-  
-  try {
-    // Check if data exists, otherwise use defaults
-    if (widget.gameData['currentGrid'] != null && widget.gameData['currentImage'] != null) {
-      currentGrid = List<int>.from(widget.gameData['currentGrid']);
-      imageTiles = List<Uint8List>.from(widget.gameData['currentImage']);
-      
-      gridSize = (currentGrid.length == 9) ? 3 : 
-                (currentGrid.length == 16) ? 4 : 
-                (currentGrid.length == 25) ? 5 : 
-                (currentGrid.length == 36) ? 6 : 3;
-      
-      moveCount = widget.gameData['currentMoves'] ?? 0;
-      isCompleted = widget.gameData['isCompleted'] ?? false;
-    } else {
-      // Set defaults for empty/new game
-      gridSize = 3; // Default to 3x3 grid
-      currentGrid = List<int>.generate(gridSize * gridSize, (index) => index);
-      imageTiles = []; // Empty list as fallback
-      moveCount = 0;
-      isCompleted = false;
-      
-      // Debug information
-      print('Warning: Game initialized with default values. Game data was incomplete.');
-      print('Received game data: ${widget.gameData}');
-    }
-  } catch (e) {
-    // Fallback for any error
-    print('Error initializing game: $e');
-    gridSize = 3;
-    currentGrid = List<int>.generate(gridSize * gridSize, (index) => index);
-    imageTiles = [];
-    moveCount = 0;
-    isCompleted = false;
+    super.initState();
+    _loadGameData();
   }
-}
+
+  Future<void> _loadGameData() async {
+    try {
+      final gameData = await _storage.loadGame(widget.gameId);
+      print('DEBUG: Loaded game data: $gameData');
+      
+      if (gameData.isEmpty || gameData['current'] == null) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'La partie n\'a pas pu être chargée';
+        });
+        return;
+      }
+
+      final currentData = gameData['current'];
+      final gridData = List<int>.from(currentData['currentGrid']);
+      
+      // Process image data - might be stored as a list of base64 strings
+      List<Uint8List> processedImageTiles = [];
+      
+      if (currentData['currentImage'] != null) {
+        final imageData = currentData['currentImage'];
+        
+        if (imageData is List) {
+          for (var item in imageData) {
+            if (item is String) {
+              // Decode base64 string to Uint8List
+              final bytes = base64Decode(item);
+              processedImageTiles.add(bytes);
+            } else if (item is List) {
+              // Convert nested list to Uint8List
+              final bytes = Uint8List.fromList(List<int>.from(item));
+              processedImageTiles.add(bytes);
+            }
+          }
+        }
+      }
+      
+      setState(() {
+        currentGrid = gridData;
+        imageTiles = processedImageTiles;
+        gridSize = (currentGrid.length == 9) ? 3 : 
+                  (currentGrid.length == 16) ? 4 : 
+                  (currentGrid.length == 25) ? 5 : 
+                  (currentGrid.length == 36) ? 6 : 3;
+        moveCount = currentData['currentMoves'] ?? 0;
+        isCompleted = currentData['isCompleted'] ?? false;
+        settings = gameData['settings'] ?? {};
+        _isLoading = false;
+      });
+      
+      print('Game loaded successfully with ${imageTiles.length} image tiles');
+    } catch (e) {
+      print('Error loading game: $e');
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Erreur de chargement: $e';
+      });
+    }
+  }
 
   // Check if a move is valid based on empty space position
   bool _isValidMove(int tileIndex) {
@@ -123,7 +153,7 @@ class _GamePageState extends State<GamePage> {
 
   // Save game state
   Future<void> _saveGame() async {
-    final gameId = widget.gameData['id'];
+    final gameId = widget.gameId;
     
     Map<String, dynamic> currentState = {
       'currentGrid': currentGrid,
@@ -134,7 +164,7 @@ class _GamePageState extends State<GamePage> {
     
     await _storage.saveGame(
       gameId, 
-      widget.gameData['settings'] ?? {}, 
+      settings, 
       currentState
     );
   }
@@ -158,8 +188,41 @@ class _GamePageState extends State<GamePage> {
     );
   }
 
-  @override
+   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        appBar: MyAppBar(title: 'Chargement...'),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    
+    if (_errorMessage.isNotEmpty) {
+      return Scaffold(
+        appBar: MyAppBar(title: 'Erreur'),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(_errorMessage,
+                style: const TextStyle(fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Retour'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: MyAppBar(title: 'Taquin ${gridSize}x$gridSize'),
       body: Column(
@@ -172,7 +235,7 @@ class _GamePageState extends State<GamePage> {
               children: [
                 Text('Mouvements: $moveCount', 
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                Text('Difficulté: ${widget.gameData["settings"]?["difficulty"] ?? "Normal"}',
+                Text('Difficulté: ${settings["difficulty"] ?? "Normal"}',
                   style: const TextStyle(fontSize: 18)),
               ],
             ),
@@ -184,66 +247,55 @@ class _GamePageState extends State<GamePage> {
                   child: Center(
                     child: Text(
                       "Aucune image disponible. Veuillez créer une nouvelle partie.",
-                      textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 16),
                     ),
                   ),
                 )
               : Expanded(
-            child: Center(
-              child: AspectRatio(
-                aspectRatio: 1.0,
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: GridView.builder(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: gridSize,
-                    ),
-                    itemCount: gridSize * gridSize,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemBuilder: (context, index) {
-                      final tileIndex = currentGrid[index];
-                      final isEmptyTile = tileIndex == gridSize * gridSize - 1;
-                      
-                      return GestureDetector(
-                        onTap: () {
-                          if (!isCompleted) {
-                            _makeMove(index);
-                          }
-                        },
-                        child: Container(
-                          margin: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            color: isEmptyTile ? Colors.transparent : Colors.white,
-                            border: Border.all(
-                              color: Colors.grey.shade300,
-                              width: 1,
-                            ),
+                  child: Center(
+                    child: AspectRatio(
+                      aspectRatio: 1.0,
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: GridView.builder(
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: gridSize,
                           ),
-                          child: isEmptyTile 
-                              ? const SizedBox() 
-                              : Image.memory(
-                                  imageTiles[tileIndex],
-                                  fit: BoxFit.cover,
+                          itemCount: gridSize * gridSize,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemBuilder: (context, index) {
+                            final tileIndex = currentGrid[index];
+                            final isEmptyTile = tileIndex == gridSize * gridSize - 1;
+                            
+                            return GestureDetector(
+                              onTap: () {
+                                if (!isCompleted) {
+                                  _makeMove(index);
+                                }
+                              },
+                              child: Container(
+                                margin: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: isEmptyTile ? Colors.transparent : Colors.white,
+                                  border: Border.all(
+                                    color: Colors.grey.shade300,
+                                    width: 1,
+                                  ),
                                 ),
+                                child: isEmptyTile 
+                                    ? const SizedBox() 
+                                    : Image.memory(
+                                        imageTiles[tileIndex],
+                                        fit: BoxFit.cover,
+                                      ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-          ),
-          
-          // Helper text
-          const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Text(
-              "Appuyez sur une tuile adjacente à l'espace vide pour la déplacer",
-              textAlign: TextAlign.center,
-              style: TextStyle(fontStyle: FontStyle.italic),
-            ),
-          ),
         ],
       ),
     );

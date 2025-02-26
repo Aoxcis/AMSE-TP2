@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:tp2/pages/game_page.dart';
+import 'package:tp2/services/storage.dart';
 import 'dart:io';
 import 'dart:math';
 import 'package:tp2/widgets/grid_overlay.dart';
@@ -159,33 +161,38 @@ class _CreateGamePageState extends State<CreateGamePage> {
             // Start Button
             ElevatedButton(
               onPressed: () async {
+                // Set up game options
                 gameOptions['gridSize'] = _gridSize;
                 gameOptions['difficulty'] = _difficulty;
-
+                
                 if (_isRandomImage) {
-                  gameOptions['image'] =
-                      'https://picsum.photos/200/300?random=$_randomImageId';
+                  gameOptions['image'] = _randomImageId;  // Store random image ID or reference
                 } else if (_selectedImage != null) {
-                  gameOptions['image'] = _selectedImage;
+                  // Handle user image
+                  gameOptions['image'] = _selectedImage!.path;
                 }
 
+                // Create game via service
                 final gameCreationService = GameCreationService();
-                final gameData =
-                    await gameCreationService.createGame(gameOptions);
+                final gameData = await gameCreationService.createGame(gameOptions);
+                
+                // Save game and get ID
+                final storageService = StorageService();
+                final gameId = await storageService.saveGame(-1, 
+                  gameOptions,  // settings
+                  {
+                    'currentGrid': gameData['currentGrid'],
+                    'currentMoves': 0,
+                    'currentImage': gameData['currentImage'], 
+                    'isCompleted': false
+                  }  // current state
+                );
 
-                setState(() {
-                  gameCurrent = gameData;
-                });
-
-                // Inside the onPressed method for the Start button
-                Navigator.pushNamed(context,'/game', arguments: gameData);
-
-                // TODO: Navigate to game page with selected options
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                        'Partie commencée: $_gridSize x $_gridSize, $_difficulty'),
-                    duration: const Duration(seconds: 2),
+                // Navigate to game with just the ID
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => GamePage(gameId: gameId),
                   ),
                 );
               },

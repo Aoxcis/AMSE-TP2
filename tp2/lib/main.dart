@@ -39,11 +39,12 @@ class MyApp extends StatelessWidget {
             '/settings': (context) => const SettingsPage(),
             '/history': (context) => const HistoryPage(),
             '/game': (context) {
-                // Get arguments if available or use empty map
-                final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-                return GamePage(gameData: args ?? {});
+              final args = ModalRoute.of(context)?.settings.arguments;
+              if (args is int) {
+                return GamePage(gameId: args);
+              }
+              return const HomePage(); // Fallback if wrong arguments
             },
-
           },
         );
       },
