@@ -7,6 +7,7 @@ import 'package:tp2/pages/create_game_page.dart';
 import 'package:tp2/pages/info_page.dart';
 import 'package:tp2/pages/settings_page.dart';
 import 'package:tp2/providers/theme_provider.dart';
+import 'package:tp2/pages/game_page.dart';
 
 void main() {
   runApp(
@@ -37,6 +38,12 @@ class MyApp extends StatelessWidget {
             '/daily': (context) => const DailyGamePage(),
             '/settings': (context) => const SettingsPage(),
             '/history': (context) => const HistoryPage(),
+            '/game': (context) {
+                // Get arguments if available or use empty map
+                final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+                return GamePage(gameData: args ?? {});
+            },
+
           },
         );
       },
