@@ -39,6 +39,7 @@ class GameCreationService {
       'currentGrid': shuffledGrid,
       'currentMoves': [],
       'currentImage': imageTiles,
+      'isCompleted': false,
     };
 
     int id = await storageService.saveGame(-1, gameSettings, gameState);

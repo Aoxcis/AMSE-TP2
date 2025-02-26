@@ -50,4 +50,15 @@ class StorageService {
     final data = json.decode(dataString) as Map<String, dynamic>;
     return data;
   }
+
+  Future<String?> getImage(int id) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'game-$id';
+    final dataString = prefs.getString(key);
+    if (dataString == null) {
+      return null;
+    }
+    final data = json.decode(dataString) as Map<String, dynamic>;
+    return data['settings']['image'] as String?;
+  }
 }
