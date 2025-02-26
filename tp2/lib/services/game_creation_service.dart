@@ -17,7 +17,8 @@ class GameCreationService {
   final storageService = StorageService();
 
   /// Creates a new game based on the provided options
-  void createGame(Map<String, dynamic> gameOptions) async {
+  Future<Map<String, dynamic>> createGame(
+      Map<String, dynamic> gameOptions) async {
     final int gridSize = gameOptions['gridSize'] ?? 3;
     final String difficulty = gameOptions['difficulty'] ?? 'Facile';
     final dynamic imageSource =
@@ -34,12 +35,17 @@ class GameCreationService {
     };
 
     Map<String, dynamic> gameState = {
+      'id': -1,
       'currentGrid': shuffledGrid,
       'currentMoves': [],
       'currentImage': imageTiles,
     };
 
-    int id = storageService.saveGame(-1, gameSettings, gameState);
+    int id = await storageService.saveGame(-1, gameSettings, gameState);
+
+    gameState['id'] = id;
+
+    return gameState;
   }
 
   /// Slices the provided image into a grid of tiles
