@@ -9,7 +9,8 @@ class HistoryPage extends StatefulWidget {
   State<HistoryPage> createState() => _HistoryPageState();
 }
 
-class _HistoryPageState extends State<HistoryPage> with SingleTickerProviderStateMixin {
+class _HistoryPageState extends State<HistoryPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -56,8 +57,8 @@ class _HistoryPageState extends State<HistoryPage> with SingleTickerProviderStat
         }
         final gameIds = snapshot.data!;
         return GridView.builder(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 150.0,
             childAspectRatio: 1.0,
           ),
           itemCount: gameIds.length,
@@ -75,12 +76,28 @@ class _HistoryPageState extends State<HistoryPage> with SingleTickerProviderStat
                 if (gameStatus != status) {
                   return const SizedBox.shrink();
                 }
-                return Card(
-                  child: Column(
-                    children: [
-                      Text('Game $gameId'),
-                      // Add more game details here
-                    ],
+                return GestureDetector(
+                  onTap: () => (){},
+                  child: Card(
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: Image.network(
+                            gameData['settings']['image'],
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(5.0),
+                          child: FittedBox(
+                            child: Text(
+                              "Partie $gameId",
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
