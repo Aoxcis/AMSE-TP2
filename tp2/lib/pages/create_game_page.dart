@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'dart:math';
+
+import 'package:tp2/services/game_creation_service.dart';
 
 class CreateGamePage extends StatefulWidget {
   const CreateGamePage({super.key});
@@ -11,8 +16,44 @@ class _CreateGamePageState extends State<CreateGamePage> {
   // State variables for grid size and difficulty
   int _gridSize = 3;
   String _difficulty = 'Facile';
+  File? _selectedImage;
+  bool _isRandomImage = false;
+  int _randomImageId = 1;
 
   final List<String> _difficulties = ['Facile', 'Moyen', 'Difficile'];
+  final ImagePicker _picker = ImagePicker();
+
+  Map<String, dynamic> gameOptions = {
+    'gridSize': 3,
+    'difficulty': 'Facile',
+    'image': null,
+  };
+
+  Map<String, dynamic> gameCurrent = {
+    'currentGrid': [],
+    'currentMoves': 0,
+    'currentImage': null,
+  };
+
+  // Method to pick image from gallery
+  Future<void> _pickImageFromGallery() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() {
+        _selectedImage = File(image.path);
+        _isRandomImage = false;
+      });
+    }
+  }
+
+  // Method to select a random image
+  void _selectRandomImage() {
+    setState(() {
+      _selectedImage = null;
+      _isRandomImage = true;
+      _randomImageId = Random().nextInt(10) + 1; // Random ID between 1-10
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +66,34 @@ class _CreateGamePageState extends State<CreateGamePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // Image Selection Buttons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _selectRandomImage,
+                  icon: const Icon(Icons.shuffle),
+                  label: const Text('Image aléatoire'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        _isRandomImage ? Colors.deepPurple.shade200 : null,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton.icon(
+                  onPressed: _pickImageFromGallery,
+                  icon: const Icon(Icons.photo_library),
+                  label: const Text('Galerie'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: !_isRandomImage && _selectedImage != null
+                        ? Colors.deepPurple.shade200
+                        : null,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
             // Image
             Container(
               width: 200,
@@ -32,14 +101,9 @@ class _CreateGamePageState extends State<CreateGamePage> {
               decoration: BoxDecoration(
                 color: Colors.grey[300],
                 borderRadius: BorderRadius.circular(8.0),
+                image: _getImageProvider(),
               ),
-              child: Center(
-                child: Icon(
-                  Icons.image,
-                  size: 80,
-                  color: Colors.grey[600],
-                ),
-              ),
+              child: _getImageWidget(),
             ),
             const SizedBox(height: 32),
 
@@ -93,7 +157,25 @@ class _CreateGamePageState extends State<CreateGamePage> {
 
             // Start Button
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
+                gameOptions['gridSize'] = _gridSize;
+                gameOptions['difficulty'] = _difficulty;
+
+                if (_isRandomImage) {
+                  gameOptions['image'] =
+                      'https://picsum.photos/200/300?random=$_randomImageId';
+                } else if (_selectedImage != null) {
+                  gameOptions['image'] = _selectedImage;
+                }
+
+                final gameCreationService = GameCreationService();
+                final gameData =
+                    await gameCreationService.createGame(gameOptions);
+
+                setState(() {
+                  gameCurrent = gameData;
+                });
+
                 // TODO: Navigate to game page with selected options
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -116,5 +198,38 @@ class _CreateGamePageState extends State<CreateGamePage> {
         ),
       ),
     );
+  }
+
+  // Helper method to get the image decoration
+  DecorationImage? _getImageProvider() {
+    if (_isRandomImage) {
+      // Here you would use an actual random image - this is just a placeholder
+      return DecorationImage(
+        image: NetworkImage(
+            'https://picsum.photos/200/300?random=$_randomImageId'),
+        fit: BoxFit.cover,
+      );
+    } else if (_selectedImage != null) {
+      return DecorationImage(
+        image: FileImage(_selectedImage!),
+        fit: BoxFit.cover,
+      );
+    }
+    return null;
+  }
+
+  // Helper method to get the image widget
+  Widget _getImageWidget() {
+    if (_isRandomImage || _selectedImage != null) {
+      return Container(); // Empty container since we're showing the image as background
+    } else {
+      return Center(
+        child: Icon(
+          Icons.image,
+          size: 80,
+          color: Colors.grey[600],
+        ),
+      );
+    }
   }
 }
