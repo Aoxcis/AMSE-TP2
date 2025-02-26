@@ -34,7 +34,7 @@ class _HomePageState extends State<HomePage> {
                 textStyle: const TextStyle(fontSize: 30),
               ),
               onPressed: () {
-                // Naviguer vers la page de jeu
+                Navigator.pushNamed(context, '/create');
               },
               child: const Text('Jouer'),
             ),
@@ -45,7 +45,7 @@ class _HomePageState extends State<HomePage> {
                 textStyle: const TextStyle(fontSize: 30),
               ),
               onPressed: () {
-                // Naviguer vers la page quotidienne
+                Navigator.pushNamed(context, '/daily');
               },
               child: const Text('Daily'),
             ),

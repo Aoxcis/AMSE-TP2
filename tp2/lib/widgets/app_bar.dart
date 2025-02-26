@@ -13,7 +13,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
         IconButton(
           icon: const Icon(Icons.info),
           onPressed: () {
-            // Action ou navigation quand on appuie sur l'icône
+            Navigator.pushNamed(context, '/info');
           },
         ),
       ],
