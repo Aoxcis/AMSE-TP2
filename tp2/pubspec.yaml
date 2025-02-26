@@ -34,6 +34,9 @@ dependencies:
   shared_preferences: ^2.0.6
   image_picker: ^1.0.5
   image: ^3.0.1
+  settings_ui: ^2.0.2
+  url_launcher: ^6.2.5  # Instead of app_settings
+  package_info_plus: ^4.2.0  # For app info
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
