@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tp2/widgets/nav_bar.dart';
 import '../services/storage.dart';
 
 class HistoryPage extends StatefulWidget {
@@ -12,6 +13,14 @@ class HistoryPage extends StatefulWidget {
 class _HistoryPageState extends State<HistoryPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+
+  int _selectedIndex = 0;
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
 
   @override
   void initState() {
@@ -29,6 +38,7 @@ class _HistoryPageState extends State<HistoryPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('Historique des parties'),
         bottom: TabBar(
           controller: _tabController,
@@ -44,6 +54,10 @@ class _HistoryPageState extends State<HistoryPage>
           _buildGameGridView(false),
           _buildGameGridView(true),
         ],
+      ),
+      bottomNavigationBar: MyNavBar(
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
       ),
     );
   }

@@ -1,0 +1,2 @@
+C:/Users/grego/Documents/Code/AMSE-TP2/tp2/android/app/.cxx/Debug/5i5l6i6m/x86/CMakeFiles/edit_cache.dir
+C:/Users/grego/Documents/Code/AMSE-TP2/tp2/android/app/.cxx/Debug/5i5l6i6m/x86/CMakeFiles/rebuild_cache.dir

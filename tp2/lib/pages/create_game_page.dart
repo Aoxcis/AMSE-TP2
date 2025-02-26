@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:math';
+import 'package:tp2/widgets/grid_overlay.dart';
 
 import 'package:tp2/services/game_creation_service.dart';
 
@@ -176,6 +177,9 @@ class _CreateGamePageState extends State<CreateGamePage> {
                   gameCurrent = gameData;
                 });
 
+                // Inside the onPressed method for the Start button
+                Navigator.pushNamed(context,'/game', arguments: gameData);
+
                 // TODO: Navigate to game page with selected options
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -221,7 +225,7 @@ class _CreateGamePageState extends State<CreateGamePage> {
   // Helper method to get the image widget
   Widget _getImageWidget() {
     if (_isRandomImage || _selectedImage != null) {
-      return Container(); // Empty container since we're showing the image as background
+      return GridOverlay(gridSize: _gridSize); // Empty container since we're showing the image as background
     } else {
       return Center(
         child: Icon(
@@ -232,4 +236,7 @@ class _CreateGamePageState extends State<CreateGamePage> {
       );
     }
   }
+
+
+  
 }
