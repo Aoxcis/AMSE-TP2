@@ -8,6 +8,7 @@ import 'package:tp2/pages/info_page.dart';
 import 'package:tp2/pages/settings_page.dart';
 import 'package:tp2/providers/theme_provider.dart';
 import 'package:tp2/pages/game_page.dart';
+import 'package:tp2/pages/game_end_page.dart';
 
 void main() {
   runApp(
@@ -45,6 +46,7 @@ class MyApp extends StatelessWidget {
               }
               return const HomePage(); // Fallback if wrong arguments
             },
+            '/game_end': (context) => const GameEndPage(),
           },
         );
       },
