@@ -6,7 +6,7 @@ import 'dart:convert';
 
 class GamePage extends StatefulWidget {
   final int gameId;
-  
+
   const GamePage({super.key, required this.gameId});
 
   @override
@@ -34,7 +34,7 @@ class _GamePageState extends State<GamePage> {
     try {
       final gameData = await _storage.loadGame(widget.gameId);
       print('DEBUG: Loaded game data: $gameData');
-      
+
       if (gameData.isEmpty || gameData['current'] == null) {
         setState(() {
           _isLoading = false;
@@ -45,13 +45,13 @@ class _GamePageState extends State<GamePage> {
 
       final currentData = gameData['current'];
       final gridData = List<int>.from(currentData['currentGrid']);
-      
+
       // Process image data - might be stored as a list of base64 strings
       List<Uint8List> processedImageTiles = [];
-      
+
       if (currentData['currentImage'] != null) {
         final imageData = currentData['currentImage'];
-        
+
         if (imageData is List) {
           for (var item in imageData) {
             if (item is String) {
@@ -66,20 +66,25 @@ class _GamePageState extends State<GamePage> {
           }
         }
       }
-      
+
       setState(() {
         currentGrid = gridData;
         imageTiles = processedImageTiles;
-        gridSize = (currentGrid.length == 9) ? 3 : 
-                  (currentGrid.length == 16) ? 4 : 
-                  (currentGrid.length == 25) ? 5 : 
-                  (currentGrid.length == 36) ? 6 : 3;
+        gridSize = (currentGrid.length == 9)
+            ? 3
+            : (currentGrid.length == 16)
+                ? 4
+                : (currentGrid.length == 25)
+                    ? 5
+                    : (currentGrid.length == 36)
+                        ? 6
+                        : 3;
         moveCount = currentData['currentMoves'] ?? 0;
         isCompleted = currentData['isCompleted'] ?? false;
         settings = gameData['settings'] ?? {};
         _isLoading = false;
       });
-      
+
       print('Game loaded successfully with ${imageTiles.length} image tiles');
     } catch (e) {
       print('Error loading game: $e');
@@ -94,37 +99,39 @@ class _GamePageState extends State<GamePage> {
   bool _isValidMove(int tileIndex) {
     // Find the empty tile (which should be gridSize*gridSize-1)
     int emptyIndex = currentGrid.indexOf(gridSize * gridSize - 1);
-    
+
     // Calculate grid positions
     int tileRow = tileIndex ~/ gridSize;
     int tileCol = tileIndex % gridSize;
     int emptyRow = emptyIndex ~/ gridSize;
     int emptyCol = emptyIndex % gridSize;
-    
+
     // Valid move if tile is adjacent to empty space
-    return (tileRow == emptyRow && (tileCol == emptyCol - 1 || tileCol == emptyCol + 1)) || 
-           (tileCol == emptyCol && (tileRow == emptyRow - 1 || tileRow == emptyRow + 1));
+    return (tileRow == emptyRow &&
+            (tileCol == emptyCol - 1 || tileCol == emptyCol + 1)) ||
+        (tileCol == emptyCol &&
+            (tileRow == emptyRow - 1 || tileRow == emptyRow + 1));
   }
 
   // Make a move by swapping a tile with the empty space
   void _makeMove(int tileIndex) {
     if (!_isValidMove(tileIndex)) return;
-    
+
     setState(() {
       // Find the empty tile
       int emptyIndex = currentGrid.indexOf(gridSize * gridSize - 1);
-      
+
       // Swap the tile with empty space
       int temp = currentGrid[tileIndex];
       currentGrid[tileIndex] = currentGrid[emptyIndex];
       currentGrid[emptyIndex] = temp;
-      
+
       moveCount++;
-      
+
       // Check if puzzle is solved
       _checkCompletion();
     });
-    
+
     // Save game state
     _saveGame();
   }
@@ -132,7 +139,7 @@ class _GamePageState extends State<GamePage> {
   // Check if the puzzle is completed
   void _checkCompletion() {
     bool solved = true;
-    
+
     // Puzzle is solved if all tiles are in order (0,1,2,...,n-1)
     for (int i = 0; i < currentGrid.length - 1; i++) {
       if (currentGrid[i] != i) {
@@ -140,12 +147,12 @@ class _GamePageState extends State<GamePage> {
         break;
       }
     }
-    
+
     if (solved) {
       setState(() {
         isCompleted = true;
       });
-      
+
       // Show completion dialog
       _showCompletionDialog();
     }
@@ -154,19 +161,15 @@ class _GamePageState extends State<GamePage> {
   // Save game state
   Future<void> _saveGame() async {
     final gameId = widget.gameId;
-    
+
     Map<String, dynamic> currentState = {
       'currentGrid': currentGrid,
       'currentMoves': moveCount,
       'currentImage': imageTiles,
       'isCompleted': isCompleted,
     };
-    
-    await _storage.saveGame(
-      gameId, 
-      settings, 
-      currentState
-    );
+
+    await _storage.saveGame(gameId, settings, currentState);
   }
 
   // Show completion dialog
@@ -179,16 +182,16 @@ class _GamePageState extends State<GamePage> {
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(context).popUntil(ModalRoute.withName('/home'));
+              Navigator.pushNamed(context, '/game_end');
             },
-            child: const Text('Retour à l\'accueil'),
+            child: const Text('fenetre de fin de jeu'),
           ),
         ],
       ),
     );
   }
 
-   @override
+  @override
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
@@ -198,7 +201,7 @@ class _GamePageState extends State<GamePage> {
         ),
       );
     }
-    
+
     if (_errorMessage.isNotEmpty) {
       return Scaffold(
         appBar: MyAppBar(title: 'Erreur'),
@@ -206,7 +209,8 @@ class _GamePageState extends State<GamePage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(_errorMessage,
+              Text(
+                _errorMessage,
                 style: const TextStyle(fontSize: 16),
                 textAlign: TextAlign.center,
               ),
@@ -233,16 +237,17 @@ class _GamePageState extends State<GamePage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                Text('Mouvements: $moveCount', 
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text('Mouvements: $moveCount',
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold)),
                 Text('Difficulté: ${settings["difficulty"] ?? "Normal"}',
-                  style: const TextStyle(fontSize: 18)),
+                    style: const TextStyle(fontSize: 18)),
               ],
             ),
           ),
-          
+
           // Game board
-          imageTiles.isEmpty 
+          imageTiles.isEmpty
               ? const Expanded(
                   child: Center(
                     child: Text(
@@ -258,15 +263,17 @@ class _GamePageState extends State<GamePage> {
                       child: Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: GridView.builder(
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: gridSize,
                           ),
                           itemCount: gridSize * gridSize,
                           physics: const NeverScrollableScrollPhysics(),
                           itemBuilder: (context, index) {
                             final tileIndex = currentGrid[index];
-                            final isEmptyTile = tileIndex == gridSize * gridSize - 1;
-                            
+                            final isEmptyTile =
+                                tileIndex == gridSize * gridSize - 1;
+
                             return GestureDetector(
                               onTap: () {
                                 if (!isCompleted) {
@@ -276,14 +283,16 @@ class _GamePageState extends State<GamePage> {
                               child: Container(
                                 margin: const EdgeInsets.all(2),
                                 decoration: BoxDecoration(
-                                  color: isEmptyTile ? Colors.transparent : Colors.white,
+                                  color: isEmptyTile
+                                      ? Colors.transparent
+                                      : Colors.white,
                                   border: Border.all(
                                     color: Colors.grey.shade300,
                                     width: 1,
                                   ),
                                 ),
-                                child: isEmptyTile 
-                                    ? const SizedBox() 
+                                child: isEmptyTile
+                                    ? const SizedBox()
                                     : Image.memory(
                                         imageTiles[tileIndex],
                                         fit: BoxFit.cover,
