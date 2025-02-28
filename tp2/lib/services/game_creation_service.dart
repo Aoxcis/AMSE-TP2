@@ -36,12 +36,12 @@ class GameCreationService {
     Map<String, dynamic> gameState = {
       'id': -1,
       'currentGrid': shuffledGrid,
-      'currentMoves': 0, // Changed from empty array to 0
+      'currentMoves': 0,
       'currentImage': imageTiles,
       'isCompleted': false,
     };
 
-    // Important: Return the game data
+    // Make sure to return the complete game data structure
     return {
       'settings': gameSettings,
       'current': gameState,
@@ -51,7 +51,6 @@ class GameCreationService {
   /// Slices the provided image into a grid of tiles
   Future<List<Uint8List>> _sliceImage(dynamic imageSource, int gridSize) async {
     if (imageSource == null) {
-      // Use a placeholder or default image if none provided
       return _generatePlaceholderImages(gridSize);
     }
 
@@ -119,7 +118,7 @@ class GameCreationService {
 
       // Add a blank tile at the end (traditionally the bottom-right corner)
       tiles.add(await _createBlankTile(tileWidth, tileHeight));
-
+      print('Image sliced into ${tiles.length} tiles');
       return tiles;
     } catch (e) {
       print('Error slicing image: $e');

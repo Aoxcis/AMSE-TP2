@@ -200,7 +200,6 @@ class _CreateGamePageState extends State<CreateGamePage> {
               }).toList(),
             ),
             const SizedBox(height: 32),
-
             // Start Button
             ElevatedButton(
               onPressed: _createAndStartGame,

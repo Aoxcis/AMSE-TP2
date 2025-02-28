@@ -24,19 +24,34 @@ class _GamePageState extends State<GamePage> {
   final StorageService _storage = StorageService();
   bool _isLoading = true;
   String _errorMessage = '';
+  bool _mounted = false; // Track if widget is mounted
 
   @override
   void initState() {
     super.initState();
-    _loadGameData();
+    // Use Future.microtask to schedule this after the widget is built
+    Future.microtask(() {
+      if (mounted) {
+        _loadGameData();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _mounted = false;
+    super.dispose();
   }
 
   Future<void> _loadGameData() async {
+    if (!mounted) return;
+
     try {
       final gameData = await _storage.loadGame(widget.gameId);
       print('DEBUG: Loaded game data: $gameData');
 
       if (gameData.isEmpty || gameData['current'] == null) {
+        if (!mounted) return;
         setState(() {
           _isLoading = false;
           _errorMessage = 'La partie n\'a pas pu être chargée';
@@ -45,68 +60,66 @@ class _GamePageState extends State<GamePage> {
       }
 
       final currentData = gameData['current'];
-      final gridData = List<int>.from(currentData['currentGrid']);
 
-      // Process image data - might be stored as a list of base64 strings
+      // Handle null grid data gracefully
+      List<int> gridData = [];
+      if (currentData['currentGrid'] != null) {
+        gridData = List<int>.from(currentData['currentGrid']);
+      } else {
+        print('ERROR: currentGrid is null in game data');
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Données de jeu corrompues';
+        });
+        return;
+      }
+
+      // Process image data with null checks
       List<Uint8List> processedImageTiles = [];
-
       if (currentData['currentImage'] != null) {
         final imageData = currentData['currentImage'];
 
-        // Extra debugging
-        print('DEBUG: Image data runtimeType: ${imageData.runtimeType}');
-
         if (imageData is List) {
-          print('DEBUG: Processing ${imageData.length} images');
-
-          for (int i = 0; i < imageData.length; i++) {
-            if (imageData[i] is String) {
+          for (var item in imageData) {
+            if (item is String) {
               try {
-                // Decode base64 string to Uint8List
-                String base64String = imageData[i];
-                print(
-                    'DEBUG: Base64 length for tile $i: ${base64String.length}');
-
-                // Check if base64 string looks valid
-                if (base64String.length < 10) {
-                  print('WARNING: Base64 string too short for tile $i');
-                  continue;
-                }
-
-                final bytes = base64Decode(base64String);
-                print(
-                    'DEBUG: Successfully decoded image $i: ${bytes.length} bytes');
+                final bytes = base64Decode(item);
                 processedImageTiles.add(bytes);
               } catch (e) {
-                print('ERROR: Failed to decode image $i: $e');
+                print('ERROR: Failed to decode image: $e');
               }
-            } else {
-              print(
-                  'WARNING: Image data $i is not a String: ${imageData[i].runtimeType}');
             }
           }
         }
       }
 
+      // Check if widget is still mounted before updating state
+      if (!mounted) return;
+
       setState(() {
         currentGrid = gridData;
         imageTiles = processedImageTiles;
-        gridSize = sqrt(currentGrid.length).toInt(); // More accurate
+        gridSize = sqrt(currentGrid.length).toInt();
         moveCount = currentData['currentMoves'] ?? 0;
         isCompleted = currentData['isCompleted'] ?? false;
         settings = gameData['settings'] ?? {};
         _isLoading = false;
       });
-
-      print(
-          'Game loaded with ${imageTiles.length} image tiles, isEmpty=${imageTiles.isEmpty}');
     } catch (e) {
       print('Error loading game: $e');
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
         _errorMessage = 'Erreur de chargement: $e';
       });
     }
+  }
+
+  @override
+  void didChangeDependencies() {
+    _mounted = true;
+    super.didChangeDependencies();
   }
 
   // Check if a move is valid based on empty space position
