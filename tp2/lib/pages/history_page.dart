@@ -89,20 +89,24 @@ class _HistoryPageState extends State<HistoryPage>
             if (!snapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
-            final gameData = snapshot.data!; // for later get the image
+            final gameData = snapshot.data!;
+            final imageUrl = gameData['settings']['image'];
             return GestureDetector(
               onTap: () => _launchGame(gameId, gameData),
               onLongPress: () => _confirmDeleteGame(context, gameId),
               child: Card(
                 child: Column(
                   children: [
-                    //TODO: display image
-                    // Expanded(
-                    //   child: Image.network(
-                    //     gameData['settings']['image'],
-                    //     fit: BoxFit.contain,
-                    //   ),
-                    // ),
+                    Expanded(
+                      child: imageUrl != null && imageUrl.isNotEmpty
+                          ? Image.network(
+                              imageUrl,
+                              fit: BoxFit.contain,
+                            )
+                          : const Center(
+                              child: Text('Pas d\'image'),
+                            ),
+                    ),
                     Padding(
                       padding: const EdgeInsets.all(5.0),
                       child: FittedBox(
