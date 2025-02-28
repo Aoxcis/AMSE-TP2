@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
-import 'package:tp2/widgets/app_bar.dart';
+import 'package:tp2/widgets/game_app_bar.dart';
 import 'package:tp2/services/storage.dart';
 import 'dart:convert';
 import 'dart:math' show sqrt;
@@ -225,7 +225,7 @@ class _GamePageState extends State<GamePage> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: MyAppBar(title: 'Chargement...'),
+        appBar: MyGameAppBar(title: 'Chargement...'),
         body: const Center(
           child: CircularProgressIndicator(),
         ),
@@ -234,7 +234,7 @@ class _GamePageState extends State<GamePage> {
 
     if (_errorMessage.isNotEmpty) {
       return Scaffold(
-        appBar: MyAppBar(title: 'Erreur'),
+        appBar: MyGameAppBar(title: 'Erreur'),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -258,7 +258,7 @@ class _GamePageState extends State<GamePage> {
     }
 
     return Scaffold(
-      appBar: MyAppBar(title: 'Taquin ${gridSize}x$gridSize'),
+      appBar: MyGameAppBar(title: 'Taquin ${gridSize}x$gridSize'),
       body: Column(
         children: [
           // Game stats
@@ -304,7 +304,6 @@ class _GamePageState extends State<GamePage> {
                             final tileValue = currentGrid[index];
                             final isEmptyTile =
                                 tileValue == gridSize * gridSize - 1;
-
                             return GestureDetector(
                               onTap: () {
                                 if (!isCompleted) {
