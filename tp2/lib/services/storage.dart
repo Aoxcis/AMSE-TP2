@@ -19,7 +19,9 @@ class StorageService {
 
     if (id == -1) {
       // Generate a new id
-      id = ids.isEmpty ? 1 : ids.length + 1;
+      id = ids.isEmpty
+          ? 1
+          : (ids.map(int.parse).reduce((a, b) => a > b ? a : b) + 1);
       ids.add(id.toString());
       await _setGameIds(prefs, ids);
     }
@@ -42,13 +44,22 @@ class StorageService {
     final key = 'game-$id';
     final data = {
       'settings': settings,
-      'current':
-          processedCurrent, // THIS LINE IS FIXED - use processedCurrent instead of current
+      'current': processedCurrent,
     };
 
     final dataString = json.encode(data);
     await prefs.setString(key, dataString);
     return id;
+  }
+
+  Future<void> deleteGame(int id) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'game-$id';
+    await prefs.remove(key);
+
+    List<String> ids = await _getGameIds(prefs);
+    ids.remove(id.toString());
+    await _setGameIds(prefs, ids);
   }
 
   Future<List<String>> _getGameIds(SharedPreferences prefs) async {
