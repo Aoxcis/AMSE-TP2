@@ -31,6 +31,7 @@ class GameCreationService {
       'gridSize': gridSize,
       'difficulty': difficulty,
       'image': imageSource,
+      'isDaily': false,
     };
 
     Map<String, dynamic> gameState = {
