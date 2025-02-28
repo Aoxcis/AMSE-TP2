@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:image/image.dart' as img;
 import 'dart:ui' as ui;
+import 'package:http/http.dart' as http;
+import 'package:flutter/services.dart' show rootBundle;
 
 import 'package:tp2/services/storage.dart';
 
@@ -51,78 +53,92 @@ class GameCreationService {
 
   /// Slices the provided image into a grid of tiles
   Future<List<Uint8List>> _sliceImage(dynamic imageSource, int gridSize) async {
-    if (imageSource == null) {
+    if (imageSource == null || (imageSource is int && (imageSource < 1 || imageSource > 10))) {
       return _generatePlaceholderImages(gridSize);
     }
 
     try {
-      ui.Image image;
+      // Default tile size
+      final tileSize = 100;
+      img.Image? sourceImage;
 
-      if (imageSource is File) {
-        // Load image from file
+      // Get the source image based on different input types
+      if (imageSource is int) {
+        // Use a predefined sample image
+        final assetPath = 'assets/images/sample_${imageSource.clamp(1, 10)}.jpg';
+        final ByteData data = await rootBundle.load(assetPath);
+        sourceImage = img.decodeImage(data.buffer.asUint8List());
+      } else if (imageSource is File) {
+        // Load from file
         final bytes = await imageSource.readAsBytes();
-        final codec = await ui.instantiateImageCodec(bytes);
-        final frame = await codec.getNextFrame();
-        image = frame.image;
-      } else if (imageSource is String) {
-        // Load image from URL
-        final NetworkImage networkImage = NetworkImage(imageSource);
-        final ImageStream stream =
-            networkImage.resolve(ImageConfiguration.empty);
-        final Completer<ui.Image> completer = Completer<ui.Image>();
-
-        final listener = ImageStreamListener((ImageInfo info, bool _) {
-          completer.complete(info.image);
-        }, onError: (dynamic error, StackTrace? stackTrace) {
-          completer.completeError(error);
-        });
-
-        stream.addListener(listener);
-        image = await completer.future;
-        stream.removeListener(listener);
-      } else {
-        return _generatePlaceholderImages(gridSize);
-      }
-
-      // Get image dimensions
-      final int width = image.width;
-      final int height = image.height;
-      final int tileWidth = width ~/ gridSize;
-      final int tileHeight = height ~/ gridSize;
-
-      List<Uint8List> tiles = [];
-
-      for (int y = 0; y < gridSize; y++) {
-        for (int x = 0; x < gridSize; x++) {
-          // Create a PictureRecorder for each tile
-          final recorder = ui.PictureRecorder();
-          final canvas = Canvas(recorder);
-
-          // Paint the portion of the image for this tile
-          canvas.drawImageRect(
-            image,
-            Rect.fromLTWH(x * tileWidth.toDouble(), y * tileHeight.toDouble(),
-                tileWidth.toDouble(), tileHeight.toDouble()),
-            Rect.fromLTWH(0, 0, tileWidth.toDouble(), tileHeight.toDouble()),
-            Paint(),
-          );
-
-          // Convert to an image
-          final picture = recorder.endRecording();
-          final tileImage = await picture.toImage(tileWidth, tileHeight);
-          final byteData =
-              await tileImage.toByteData(format: ui.ImageByteFormat.png);
-
-          tiles.add(byteData!.buffer.asUint8List());
+        sourceImage = img.decodeImage(bytes);
+      } else if (imageSource is String && imageSource.startsWith('http')) {
+        // Download from URL
+        final response = await http.get(Uri.parse(imageSource));
+        if (response.statusCode == 200) {
+          sourceImage = img.decodeImage(response.bodyBytes);
         }
       }
 
-      // Add a blank tile at the end (traditionally the bottom-right corner)
-      tiles.add(await _createBlankTile(tileWidth, tileHeight));
-      print('Image sliced into ${tiles.length} tiles');
+      // If we couldn't load the image, use placeholders
+      if (sourceImage == null) {
+        print("Warning: Could not load image source, using placeholders");
+        return _generatePlaceholderImages(gridSize);
+      }
+
+      // Make sure image is square
+      int minDimension = min(sourceImage.width, sourceImage.height);
+      img.Image squareImage = img.copyCrop(
+        sourceImage,
+        (sourceImage.width - minDimension) ~/ 2,
+        (sourceImage.height - minDimension) ~/ 2,
+        minDimension,
+        minDimension
+      );
+
+      // Resize if needed
+      img.Image resizedImage = img.copyResize(squareImage, width: 300, height: 300);
+
+      // Calculate tile size
+      int tileDimension = resizedImage.width ~/ gridSize;
+
+      // Cut the image into tiles
+      List<Uint8List> tiles = [];
+      for (int y = 0; y < gridSize; y++) {
+        for (int x = 0; x < gridSize; x++) {
+          // Skip the last tile (will be blank)
+          if (x == gridSize - 1 && y == gridSize - 1) continue;
+          
+          // Copy the tile portion
+          img.Image tilePart = img.copyCrop(
+            resizedImage,
+            x * tileDimension,
+            y * tileDimension,
+            tileDimension,
+            tileDimension
+          );
+          
+          // Convert to PNG bytes
+          List<int> pngBytes = img.encodePng(tilePart);
+          tiles.add(Uint8List.fromList(pngBytes));
+        }
+      }
+
+      // Create a blank tile for the last position
+      img.Image blankTile = img.Image(tileDimension, tileDimension);
+      // Fill with transparent pixels
+      for (int y = 0; y < tileDimension; y++) {
+        for (int x = 0; x < tileDimension; x++) {
+          blankTile.setPixel(x, y, img.getColor(0, 0, 0, 0));
+        }
+      }
+      List<int> blankBytes = img.encodePng(blankTile);
+      tiles.add(Uint8List.fromList(blankBytes));
+
+      print("Successfully sliced image into ${tiles.length} tiles");
       return tiles;
     } catch (e) {
-      print('Error slicing image: $e');
+      print("Error slicing image: $e");
       return _generatePlaceholderImages(gridSize);
     }
   }

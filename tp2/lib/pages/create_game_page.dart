@@ -46,7 +46,7 @@ class _CreateGamePageState extends State<CreateGamePage> {
     // Set the appropriate image source
     if (_isRandomImage) {
       // For random images, use our random ID
-      gameOptions['image'] = _randomImageId;
+      gameOptions['image'] = 'https://picsum.photos/id/$_randomImageId/300/300';
     } else if (_selectedImage != null) {
       // For gallery images, use the file
       gameOptions['image'] = _selectedImage;
@@ -97,7 +97,8 @@ class _CreateGamePageState extends State<CreateGamePage> {
     setState(() {
       _selectedImage = null;
       _isRandomImage = true;
-      _randomImageId = Random().nextInt(10) + 1; // Random ID between 1-10
+      // Picsum has images from id 1 to about 1084
+      _randomImageId = Random().nextInt(1084) + 1; 
     });
   }
 
@@ -224,7 +225,7 @@ class _CreateGamePageState extends State<CreateGamePage> {
       // Here you would use an actual random image - this is just a placeholder
       return DecorationImage(
         image: NetworkImage(
-            'https://picsum.photos/200/300?random=$_randomImageId'),
+            'https://picsum.photos/id/$_randomImageId/300/300'),
         fit: BoxFit.cover,
       );
     } else if (_selectedImage != null) {
