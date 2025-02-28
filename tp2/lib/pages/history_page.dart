@@ -91,16 +91,17 @@ class _HistoryPageState extends State<HistoryPage>
                   return const SizedBox.shrink();
                 }
                 return GestureDetector(
-                  onTap: () => (){},
+                  onTap: () => _launchGame(gameId),
                   child: Card(
                     child: Column(
                       children: [
-                        Expanded(
-                          child: Image.network(
-                            gameData['settings']['image'],
-                            fit: BoxFit.contain,
-                          ),
-                        ),
+                        //TODO: display image
+                        // Expanded(
+                        //   child: Image.network(
+                        //     gameData['settings']['image'],
+                        //     fit: BoxFit.contain,
+                        //   ),
+                        // ),
                         Padding(
                           padding: const EdgeInsets.all(5.0),
                           child: FittedBox(
@@ -120,6 +121,10 @@ class _HistoryPageState extends State<HistoryPage>
         );
       },
     );
+  }
+
+  void _launchGame(int gameId) {
+    Navigator.pushNamed(context, '/game', arguments: {'gameId': gameId});
   }
 
   Future<List<int>> _loadGameIds() async {
