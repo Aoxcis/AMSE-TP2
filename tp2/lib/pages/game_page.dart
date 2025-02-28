@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:tp2/widgets/app_bar.dart';
 import 'package:tp2/services/storage.dart';
 import 'dart:convert';
+import 'dart:math' show sqrt;
 
 class GamePage extends StatefulWidget {
   final int gameId;
@@ -52,16 +53,36 @@ class _GamePageState extends State<GamePage> {
       if (currentData['currentImage'] != null) {
         final imageData = currentData['currentImage'];
 
+        // Extra debugging
+        print('DEBUG: Image data runtimeType: ${imageData.runtimeType}');
+
         if (imageData is List) {
-          for (var item in imageData) {
-            if (item is String) {
-              // Decode base64 string to Uint8List
-              final bytes = base64Decode(item);
-              processedImageTiles.add(bytes);
-            } else if (item is List) {
-              // Convert nested list to Uint8List
-              final bytes = Uint8List.fromList(List<int>.from(item));
-              processedImageTiles.add(bytes);
+          print('DEBUG: Processing ${imageData.length} images');
+
+          for (int i = 0; i < imageData.length; i++) {
+            if (imageData[i] is String) {
+              try {
+                // Decode base64 string to Uint8List
+                String base64String = imageData[i];
+                print(
+                    'DEBUG: Base64 length for tile $i: ${base64String.length}');
+
+                // Check if base64 string looks valid
+                if (base64String.length < 10) {
+                  print('WARNING: Base64 string too short for tile $i');
+                  continue;
+                }
+
+                final bytes = base64Decode(base64String);
+                print(
+                    'DEBUG: Successfully decoded image $i: ${bytes.length} bytes');
+                processedImageTiles.add(bytes);
+              } catch (e) {
+                print('ERROR: Failed to decode image $i: $e');
+              }
+            } else {
+              print(
+                  'WARNING: Image data $i is not a String: ${imageData[i].runtimeType}');
             }
           }
         }
@@ -70,22 +91,15 @@ class _GamePageState extends State<GamePage> {
       setState(() {
         currentGrid = gridData;
         imageTiles = processedImageTiles;
-        gridSize = (currentGrid.length == 9)
-            ? 3
-            : (currentGrid.length == 16)
-                ? 4
-                : (currentGrid.length == 25)
-                    ? 5
-                    : (currentGrid.length == 36)
-                        ? 6
-                        : 3;
+        gridSize = sqrt(currentGrid.length).toInt(); // More accurate
         moveCount = currentData['currentMoves'] ?? 0;
         isCompleted = currentData['isCompleted'] ?? false;
         settings = gameData['settings'] ?? {};
         _isLoading = false;
       });
 
-      print('Game loaded successfully with ${imageTiles.length} image tiles');
+      print(
+          'Game loaded with ${imageTiles.length} image tiles, isEmpty=${imageTiles.isEmpty}');
     } catch (e) {
       print('Error loading game: $e');
       setState(() {
@@ -162,11 +176,14 @@ class _GamePageState extends State<GamePage> {
   Future<void> _saveGame() async {
     final gameId = widget.gameId;
 
+    // Don't try to save the image data each time - too large and unnecessary
+    // Once loaded, we can keep using the same image tiles
     Map<String, dynamic> currentState = {
       'currentGrid': currentGrid,
       'currentMoves': moveCount,
-      'currentImage': imageTiles,
       'isCompleted': isCompleted,
+      // Only send image data on first save or if we have to
+      'currentImage': imageTiles,
     };
 
     await _storage.saveGame(gameId, settings, currentState);
@@ -269,10 +286,11 @@ class _GamePageState extends State<GamePage> {
                           ),
                           itemCount: gridSize * gridSize,
                           physics: const NeverScrollableScrollPhysics(),
+                          // Inside GridView.builder's itemBuilder function:
                           itemBuilder: (context, index) {
-                            final tileIndex = currentGrid[index];
+                            final tileValue = currentGrid[index];
                             final isEmptyTile =
-                                tileIndex == gridSize * gridSize - 1;
+                                tileValue == gridSize * gridSize - 1;
 
                             return GestureDetector(
                               onTap: () {
@@ -292,11 +310,50 @@ class _GamePageState extends State<GamePage> {
                                   ),
                                 ),
                                 child: isEmptyTile
-                                    ? const SizedBox()
-                                    : Image.memory(
-                                        imageTiles[tileIndex],
-                                        fit: BoxFit.cover,
-                                      ),
+                                    ? const SizedBox() // Empty tile
+                                    : imageTiles.isNotEmpty &&
+                                            tileValue < imageTiles.length
+                                        ? Image.memory(
+                                            imageTiles[tileValue],
+                                            fit: BoxFit.cover,
+                                            errorBuilder:
+                                                (context, error, stackTrace) {
+                                              print(
+                                                  'Error loading image: $error');
+                                              // Fallback to colored tile with number
+                                              return Container(
+                                                color: Colors.primaries[
+                                                    tileValue %
+                                                        Colors
+                                                            .primaries.length],
+                                                child: Center(
+                                                  child: Text(
+                                                    '${tileValue + 1}',
+                                                    style: TextStyle(
+                                                      fontSize: 24,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          )
+                                        : Container(
+                                            color: Colors.primaries[tileValue %
+                                                Colors.primaries.length],
+                                            child: Center(
+                                              child: Text(
+                                                '${tileValue + 1}',
+                                                style: TextStyle(
+                                                  fontSize: 24,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
                               ),
                             );
                           },

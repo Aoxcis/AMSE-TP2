@@ -38,6 +38,49 @@ class _CreateGamePageState extends State<CreateGamePage> {
     'currentImage': null,
   };
 
+  Future<void> _createAndStartGame() async {
+    // Prepare game options
+    gameOptions['gridSize'] = _gridSize;
+    gameOptions['difficulty'] = _difficulty;
+
+    // Set the appropriate image source
+    if (_isRandomImage) {
+      // For random images, use our random ID
+      gameOptions['image'] = _randomImageId;
+    } else if (_selectedImage != null) {
+      // For gallery images, use the file
+      gameOptions['image'] = _selectedImage;
+    }
+
+    try {
+      // Create game using service
+      final gameCreationService = GameCreationService();
+      final gameData = await gameCreationService.createGame(gameOptions);
+
+      // Debug the returned data structure
+      print("DEBUG: Game created with structure: $gameData");
+
+      // Save the game to get an ID
+      final id = await gameCreationService.storageService.saveGame(
+          -1, // New game
+          gameData['settings'],
+          gameData['current']);
+
+      print("DEBUG: Game saved with ID: $id");
+
+      // Navigate to game page with the ID
+      Navigator.pushNamed(context, '/game', arguments: {'gameId': id});
+    } catch (e) {
+      print("ERROR creating game: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur lors de la création du jeu: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   // Method to pick image from gallery
   Future<void> _pickImageFromGallery() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
@@ -160,42 +203,7 @@ class _CreateGamePageState extends State<CreateGamePage> {
 
             // Start Button
             ElevatedButton(
-              onPressed: () async {
-                // Set up game options
-                gameOptions['gridSize'] = _gridSize;
-                gameOptions['difficulty'] = _difficulty;
-                
-                if (_isRandomImage) {
-                  gameOptions['image'] = _randomImageId;  // Store random image ID or reference
-                } else if (_selectedImage != null) {
-                  // Handle user image
-                  gameOptions['image'] = _selectedImage!.path;
-                }
-
-                // Create game via service
-                final gameCreationService = GameCreationService();
-                final gameData = await gameCreationService.createGame(gameOptions);
-                
-                // Save game and get ID
-                final storageService = StorageService();
-                final gameId = await storageService.saveGame(-1, 
-                  gameOptions,  // settings
-                  {
-                    'currentGrid': gameData['currentGrid'],
-                    'currentMoves': 0,
-                    'currentImage': gameData['currentImage'], 
-                    'isCompleted': false
-                  }  // current state
-                );
-
-                // Navigate to game with just the ID
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => GamePage(gameId: gameId),
-                  ),
-                );
-              },
+              onPressed: _createAndStartGame,
               style: ElevatedButton.styleFrom(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
@@ -232,7 +240,9 @@ class _CreateGamePageState extends State<CreateGamePage> {
   // Helper method to get the image widget
   Widget _getImageWidget() {
     if (_isRandomImage || _selectedImage != null) {
-      return GridOverlay(gridSize: _gridSize); // Empty container since we're showing the image as background
+      return GridOverlay(
+          gridSize:
+              _gridSize); // Empty container since we're showing the image as background
     } else {
       return Center(
         child: Icon(
@@ -243,7 +253,4 @@ class _CreateGamePageState extends State<CreateGamePage> {
       );
     }
   }
-
-
-  
 }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class StorageService {
@@ -11,7 +12,8 @@ class StorageService {
   // Internal constructor
   StorageService._internal();
 
-  Future<int> saveGame(int id, Map<String, dynamic> settings, Map<String, dynamic> current) async {
+  Future<int> saveGame(int id, Map<String, dynamic> settings,
+      Map<String, dynamic> current) async {
     final prefs = await SharedPreferences.getInstance();
     List<String> ids = await _getGameIds(prefs);
 
@@ -22,11 +24,28 @@ class StorageService {
       await _setGameIds(prefs, ids);
     }
 
+    // Process image data for storage
+    var processedCurrent = Map<String, dynamic>.from(current);
+
+    // Convert image tiles to base64 strings for storage
+    if (current['currentImage'] != null &&
+        current['currentImage'] is List<Uint8List>) {
+      List<String> base64Images = [];
+      for (var imgData in current['currentImage']) {
+        if (imgData is Uint8List) {
+          base64Images.add(base64Encode(imgData));
+        }
+      }
+      processedCurrent['currentImage'] = base64Images;
+    }
+
     final key = 'game-$id';
     final data = {
       'settings': settings,
-      'current': current,
+      'current':
+          processedCurrent, // THIS LINE IS FIXED - use processedCurrent instead of current
     };
+
     final dataString = json.encode(data);
     await prefs.setString(key, dataString);
     return id;
@@ -47,8 +66,13 @@ class StorageService {
     if (dataString == null) {
       return {};
     }
-    final data = json.decode(dataString) as Map<String, dynamic>;
-    return data;
+    try {
+      final data = json.decode(dataString) as Map<String, dynamic>;
+      return data;
+    } catch (e) {
+      print('Error decoding game data: $e');
+      return {};
+    }
   }
 
   Future<String?> getImage(int id) async {

@@ -40,9 +40,11 @@ class MyApp extends StatelessWidget {
             '/settings': (context) => const SettingsPage(),
             '/history': (context) => const HistoryPage(),
             '/game': (context) {
-              final args = ModalRoute.of(context)?.settings.arguments;
-              if (args is int) {
-                return GamePage(gameId: args);
+              final args = ModalRoute.of(context)?.settings.arguments
+                  as Map<String, dynamic>?;
+              final gameId = args?['gameId'] as int? ?? -1;
+              if (gameId > 0) {
+                return GamePage(gameId: gameId);
               }
               return const HomePage(); // Fallback if wrong arguments
             },
