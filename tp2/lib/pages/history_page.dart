@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tp2/services/game_creation_service.dart';
 import 'package:tp2/widgets/nav_bar.dart';
 import '../services/storage.dart';
+import 'game_page.dart'; // Import the game page
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -89,7 +91,7 @@ class _HistoryPageState extends State<HistoryPage>
             }
             final gameData = snapshot.data!; // for later get the image
             return GestureDetector(
-              onTap: () => _launchGame(gameId),
+              onTap: () => _launchGame(gameId, gameData),
               child: Card(
                 child: Column(
                   children: [
@@ -119,8 +121,54 @@ class _HistoryPageState extends State<HistoryPage>
     );
   }
 
-  void _launchGame(int gameId) {
-    Navigator.pushNamed(context, '/game', arguments: {'gameId': gameId});
+  void _launchGame(int gameId, Map<String, dynamic> gameData) {
+    final isCompleted = gameData['current']['isCompleted'];
+    if (isCompleted) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Recommencer la partie'),
+          content: const Text('Voulez-vous recommencer cette partie ?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _restartGame(gameId, gameData);
+              },
+              child: const Text('Oui'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/game', arguments: {'gameId': gameId});
+              },
+              child: const Text('Non'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      Navigator.pushNamed(context, '/game', arguments: {'gameId': gameId});
+    }
+  }
+
+  void _restartGame(int gameId, Map<String, dynamic> gameData) async {
+    final StorageService storage = StorageService();
+    final gameCreationService = GameCreationService();
+
+    // Reinitialize game settings
+    final gameOptions = gameData['settings'];
+    final newGameData = await gameCreationService.createGame(gameOptions);
+
+    // Save the new game data
+    final newGameId = await storage.saveGame(
+      -1, // New game
+      newGameData['settings'],
+      newGameData['current'],
+    );
+
+    // Navigate to the new game
+    Navigator.pushNamed(context, '/game', arguments: {'gameId': newGameId});
   }
 
   Future<Map<String, List<int>>> _loadGameIds() async {
