@@ -92,6 +92,7 @@ class _HistoryPageState extends State<HistoryPage>
             final gameData = snapshot.data!; // for later get the image
             return GestureDetector(
               onTap: () => _launchGame(gameId, gameData),
+              onLongPress: () => _confirmDeleteGame(context, gameId),
               child: Card(
                 child: Column(
                   children: [
@@ -121,6 +122,37 @@ class _HistoryPageState extends State<HistoryPage>
     );
   }
 
+  void _confirmDeleteGame(BuildContext context, int gameId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Supprimer la partie'),
+        content: const Text('Voulez-vous vraiment supprimer cette partie ?'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteGame(gameId);
+            },
+            child: const Text('Oui'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text('Non'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _deleteGame(int gameId) async {
+    final StorageService storage = StorageService();
+    await storage.deleteGame(gameId);
+    setState(() {});
+  }
+
   void _launchGame(int gameId, Map<String, dynamic> gameData) {
     final isCompleted = gameData['current']['isCompleted'];
     if (isCompleted) {
@@ -140,7 +172,8 @@ class _HistoryPageState extends State<HistoryPage>
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                Navigator.pushNamed(context, '/game', arguments: {'gameId': gameId});
+                Navigator.pushNamed(context, '/game',
+                    arguments: {'gameId': gameId});
               },
               child: const Text('Non'),
             ),
@@ -155,6 +188,9 @@ class _HistoryPageState extends State<HistoryPage>
   void _restartGame(int gameId, Map<String, dynamic> gameData) async {
     final StorageService storage = StorageService();
     final gameCreationService = GameCreationService();
+
+    // Delete the old game
+    await storage.deleteGame(gameId);
 
     // Reinitialize game settings
     final gameOptions = gameData['settings'];
