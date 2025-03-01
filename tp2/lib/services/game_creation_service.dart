@@ -79,6 +79,12 @@ class GameCreationService {
           sourceImage = img.decodeImage(response.bodyBytes);
         }
       }
+      else if (imageSource is String && !imageSource.startsWith('http')) {
+        // Handle file path string
+        final file = File(imageSource);
+        final bytes = await file.readAsBytes();
+        sourceImage = img.decodeImage(bytes);
+      }
 
       // If we couldn't load the image, use placeholders
       if (sourceImage == null) {

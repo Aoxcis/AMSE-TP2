@@ -48,8 +48,8 @@ class _CreateGamePageState extends State<CreateGamePage> {
       // For random images, use our random ID
       gameOptions['image'] = 'https://picsum.photos/id/$_randomImageId/300/300';
     } else if (_selectedImage != null) {
-      // For gallery images, use the file
-      gameOptions['image'] = _selectedImage;
+      // For gallery images, use the file PATH instead of the file object
+      gameOptions['image'] = _selectedImage!.path; // This is the fix!
     }
 
     try {
