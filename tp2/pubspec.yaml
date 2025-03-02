@@ -37,6 +37,7 @@ dependencies:
   settings_ui: ^2.0.2
   url_launcher: ^6.2.5  # Instead of app_settings
   package_info_plus: ^4.2.0  # For app info
+  table_calendar: ^3.0.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
