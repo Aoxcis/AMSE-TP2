@@ -20,6 +20,7 @@ class _CreateGamePageState extends State<CreateGamePage> {
   int _gridSize = 3;
   String _difficulty = 'Facile';
   File? _selectedImage;
+  File? _cameraImage;
   bool _isRandomImage = false;
   int _randomImageId = 1;
 
@@ -43,26 +44,21 @@ class _CreateGamePageState extends State<CreateGamePage> {
     gameOptions['gridSize'] = _gridSize;
     gameOptions['difficulty'] = _difficulty;
 
-    // Set the appropriate image source
     if (_isRandomImage) {
-      // For random images, use our random ID
       gameOptions['image'] = 'https://picsum.photos/id/$_randomImageId/300/300';
     } else if (_selectedImage != null) {
-      // For gallery images, use the file PATH instead of the file object
-      gameOptions['image'] = _selectedImage!.path; // This is the fix!
+      gameOptions['image'] = _selectedImage!.path;
     }
 
     try {
-      // Create game using service
       final gameCreationService = GameCreationService();
       final gameData = await gameCreationService.createGame(gameOptions);
 
-      // Debug the returned data structure
       print("DEBUG: Game created with structure: $gameData");
 
       // Save the game to get an ID
       final id = await gameCreationService.storageService.saveGame(
-          -1, // New game
+          -1,
           gameData['settings'],
           gameData['current']);
 
@@ -87,6 +83,18 @@ class _CreateGamePageState extends State<CreateGamePage> {
     if (image != null) {
       setState(() {
         _selectedImage = File(image.path);
+        _cameraImage = null;
+        _isRandomImage = false;
+      });
+    }
+  }
+  // Method to take picture from camera
+  Future<void> _pickImageFromCamera() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.camera);
+    if (image != null) {
+      setState(() {
+        _cameraImage = File(image.path);
+        _selectedImage = null;
         _isRandomImage = false;
       });
     }
@@ -132,13 +140,24 @@ class _CreateGamePageState extends State<CreateGamePage> {
                   icon: const Icon(Icons.photo_library),
                   label: const Text('Galerie'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: !_isRandomImage && _selectedImage != null
+                    backgroundColor: !_isRandomImage && _cameraImage == null && _selectedImage != null
                         ? Colors.deepPurple.shade200
                         : null,
                   ),
                 ),
               ],
             ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+                  onPressed: _pickImageFromCamera,
+                  icon: const Icon(Icons.camera),
+                  label: const Text('Camera'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: !_isRandomImage && _cameraImage != null && _selectedImage == null
+                        ? Colors.deepPurple.shade200
+                        : null,
+                  ),
+                ),
             const SizedBox(height: 16),
 
             // Image
@@ -222,7 +241,6 @@ class _CreateGamePageState extends State<CreateGamePage> {
   // Helper method to get the image decoration
   DecorationImage? _getImageProvider() {
     if (_isRandomImage) {
-      // Here you would use an actual random image - this is just a placeholder
       return DecorationImage(
         image: NetworkImage(
             'https://picsum.photos/id/$_randomImageId/300/300'),
@@ -242,7 +260,7 @@ class _CreateGamePageState extends State<CreateGamePage> {
     if (_isRandomImage || _selectedImage != null) {
       return GridOverlay(
           gridSize:
-              _gridSize); // Empty container since we're showing the image as background
+              _gridSize);
     } else {
       return Center(
         child: Icon(
