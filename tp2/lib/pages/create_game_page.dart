@@ -46,8 +46,18 @@ class _CreateGamePageState extends State<CreateGamePage> {
 
     if (_isRandomImage) {
       gameOptions['image'] = 'https://picsum.photos/id/$_randomImageId/300/300';
-    } else if (_selectedImage != null) {
+    } else if (_selectedImage != null && _cameraImage == null) {
       gameOptions['image'] = _selectedImage!.path;
+    } else if (_cameraImage != null && _selectedImage == null) {
+      gameOptions['image'] = _cameraImage!.path;
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Veuillez sélectionner une image'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
     }
 
     try {
@@ -57,10 +67,8 @@ class _CreateGamePageState extends State<CreateGamePage> {
       print("DEBUG: Game created with structure: $gameData");
 
       // Save the game to get an ID
-      final id = await gameCreationService.storageService.saveGame(
-          -1,
-          gameData['settings'],
-          gameData['current']);
+      final id = await gameCreationService.storageService
+          .saveGame(-1, gameData['settings'], gameData['current']);
 
       print("DEBUG: Game saved with ID: $id");
 
@@ -88,6 +96,7 @@ class _CreateGamePageState extends State<CreateGamePage> {
       });
     }
   }
+
   // Method to take picture from camera
   Future<void> _pickImageFromCamera() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.camera);
@@ -106,7 +115,7 @@ class _CreateGamePageState extends State<CreateGamePage> {
       _selectedImage = null;
       _isRandomImage = true;
       // Picsum has images from id 1 to about 1084
-      _randomImageId = Random().nextInt(1084) + 1; 
+      _randomImageId = Random().nextInt(1084) + 1;
     });
   }
 
@@ -140,7 +149,9 @@ class _CreateGamePageState extends State<CreateGamePage> {
                   icon: const Icon(Icons.photo_library),
                   label: const Text('Galerie'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: !_isRandomImage && _cameraImage == null && _selectedImage != null
+                    backgroundColor: !_isRandomImage &&
+                            _cameraImage == null &&
+                            _selectedImage != null
                         ? Colors.deepPurple.shade200
                         : null,
                   ),
@@ -149,15 +160,17 @@ class _CreateGamePageState extends State<CreateGamePage> {
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
-                  onPressed: _pickImageFromCamera,
-                  icon: const Icon(Icons.camera),
-                  label: const Text('Camera'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: !_isRandomImage && _cameraImage != null && _selectedImage == null
-                        ? Colors.deepPurple.shade200
-                        : null,
-                  ),
-                ),
+              onPressed: _pickImageFromCamera,
+              icon: const Icon(Icons.camera),
+              label: const Text('Camera'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: !_isRandomImage &&
+                        _cameraImage != null &&
+                        _selectedImage == null
+                    ? Colors.deepPurple.shade200
+                    : null,
+              ),
+            ),
             const SizedBox(height: 16),
 
             // Image
@@ -242,8 +255,7 @@ class _CreateGamePageState extends State<CreateGamePage> {
   DecorationImage? _getImageProvider() {
     if (_isRandomImage) {
       return DecorationImage(
-        image: NetworkImage(
-            'https://picsum.photos/id/$_randomImageId/300/300'),
+        image: NetworkImage('https://picsum.photos/id/$_randomImageId/300/300'),
         fit: BoxFit.cover,
       );
     } else if (_selectedImage != null) {
@@ -258,9 +270,7 @@ class _CreateGamePageState extends State<CreateGamePage> {
   // Helper method to get the image widget
   Widget _getImageWidget() {
     if (_isRandomImage || _selectedImage != null) {
-      return GridOverlay(
-          gridSize:
-              _gridSize);
+      return GridOverlay(gridSize: _gridSize);
     } else {
       return Center(
         child: Icon(
