@@ -95,15 +95,14 @@ class _InfoPageState extends State<InfoPage> {
                   style: Theme.of(context).textTheme.bodyLarge,
                   textAlign: TextAlign.center,
                 ),
+                const SizedBox(height: 16),
                 ElevatedButton.icon(
                   onPressed: () {
                     Navigator.pushNamed(context, '/exercices');
                   },
                   icon: const Icon(Icons.arrow_forward),
                   label: const Text('Exercices'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurple.shade50,
-                  ),
+                  style: ElevatedButton.styleFrom(),
                 ),
               ],
             ),
