@@ -214,10 +214,26 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
       }
     }
     if (solved) {
+      // Stop the stopwatch when game is completed
+      if (_stopwatch.isRunning) {
+        _stopwatch.stop();
+        _baseElapsed += _stopwatch.elapsed;
+        _stopwatch.reset();
+      }
+
       setState(() {
         isCompleted = true;
       });
-      Navigator.pushNamed(context, '/game_end');
+
+      // Save the game before navigating
+      _saveGame();
+
+      // Pass move count and elapsed time to GameEndPage
+      Navigator.pushNamed(context, '/game_end', arguments: {
+        'moveCount': moveCount,
+        'elapsedTime': getCurrentElapsed(),
+        'image': imageTiles,
+      });
     }
   }
 
