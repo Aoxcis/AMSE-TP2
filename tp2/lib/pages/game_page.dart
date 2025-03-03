@@ -14,7 +14,7 @@ class GamePage extends StatefulWidget {
   State<GamePage> createState() => _GamePageState();
 }
 
-class _GamePageState extends State<GamePage> {
+class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   List<int> currentGrid = [];
   List<Uint8List> imageTiles = [];
   int gridSize = 3;
@@ -22,13 +22,19 @@ class _GamePageState extends State<GamePage> {
   bool isCompleted = false;
   Map<String, dynamic> settings = {};
   final StorageService _storage = StorageService();
+
   bool _isLoading = true;
   String _errorMessage = '';
-  bool _mounted = false; // Track if widget is mounted
+  bool _mounted = false;
+
+  DateTime? gameStartTime;
+  Duration pausedDuration = Duration.zero;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    gameStartTime = DateTime.now();
     // Use Future.microtask to schedule this after the widget is built
     Future.microtask(() {
       if (mounted) {
@@ -39,8 +45,42 @@ class _GamePageState extends State<GamePage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _mounted = false;
+    _saveTimeOnExit();
     super.dispose();
+  }
+
+  // Save time when leaving the game (if still timing)
+  Future<void> _saveTimeOnExit() async {
+    if (gameStartTime != null) {
+      final elapsedSoFar = DateTime.now().difference(gameStartTime!);
+      await _saveElapsedTime(pausedDuration + elapsedSoFar);
+    } else {
+      await _saveGame();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      // When the app goes to background, pause the timer:
+      if (gameStartTime != null) {
+        pausedDuration += DateTime.now().difference(gameStartTime!);
+        gameStartTime = null;
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      // When the app is resumed, restart the timer if the game isn't completed:
+      if (gameStartTime == null && !isCompleted) {
+        gameStartTime = DateTime.now();
+      }
+    }
+  }
+
+  Map<String, dynamic> getGameInfo() {
+    return {
+      'nbCoups': moveCount,
+    };
   }
 
   Future<void> _loadGameData() async {
@@ -48,7 +88,6 @@ class _GamePageState extends State<GamePage> {
 
     try {
       final gameData = await _storage.loadGame(widget.gameId);
-      print('DEBUG: Loaded game data: $gameData');
 
       if (gameData.isEmpty || gameData['current'] == null) {
         if (!mounted) return;
@@ -92,6 +131,27 @@ class _GamePageState extends State<GamePage> {
             }
           }
         }
+      }
+
+      // Load saved duration
+      bool isNewGame = currentData['isCompleted'] != true &&
+          currentData['elapsedTimeMs'] != null;
+
+      if (isNewGame) {
+        // For ongoing games, load the saved time
+        pausedDuration =
+            Duration(milliseconds: currentData['elapsedTimeMs'] ?? 0);
+        // Start timing from now
+        gameStartTime = DateTime.now();
+      } else if (currentData['isCompleted'] == true) {
+        // For completed games, just load the final time
+        pausedDuration =
+            Duration(milliseconds: currentData['elapsedTimeMs'] ?? 0);
+        gameStartTime = null; // Don't continue timing
+      } else {
+        // Brand new game
+        pausedDuration = Duration.zero;
+        gameStartTime = DateTime.now();
       }
 
       // Check if widget is still mounted before updating state
@@ -179,46 +239,37 @@ class _GamePageState extends State<GamePage> {
       setState(() {
         isCompleted = true;
       });
-
-      // Show completion dialog
-      _showCompletionDialog();
+      Navigator.pushNamed(context, '/game_end');
     }
+  }
+
+  Duration getCurrentElapsed() {
+    return pausedDuration +
+        (gameStartTime != null
+            ? DateTime.now().difference(gameStartTime!)
+            : Duration.zero);
+  }
+
+  Future<void> _saveElapsedTime(Duration elapsed) async {
+    pausedDuration = elapsed;
+    // Await the save operation
+    await _saveGame();
   }
 
   // Save game state
   Future<void> _saveGame() async {
     final gameId = widget.gameId;
 
-    // Don't try to save the image data each time - too large and unnecessary
-    // Once loaded, we can keep using the same image tiles
     Map<String, dynamic> currentState = {
       'currentGrid': currentGrid,
       'currentMoves': moveCount,
       'isCompleted': isCompleted,
-      // Only send image data on first save or if we have to
       'currentImage': imageTiles,
+      'elapsedTimeMs': getCurrentElapsed().inMilliseconds,
     };
+    print('DEBUG: Saving game state: $currentState');
 
     await _storage.saveGame(gameId, settings, currentState);
-  }
-
-  // Show completion dialog
-  void _showCompletionDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Félicitations!'),
-        content: Text('Vous avez résolu le puzzle en $moveCount coups.'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pushNamed(context, '/game_end');
-            },
-            child: const Text('fenetre de fin de jeu'),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -257,124 +308,162 @@ class _GamePageState extends State<GamePage> {
       );
     }
 
-    return Scaffold(
-      appBar: MyGameAppBar(title: 'Taquin ${gridSize}x$gridSize'),
-      body: Column(
-        children: [
-          // Game stats
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Text('Mouvements: $moveCount',
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold)),
-                Text('Difficulté: ${settings["difficulty"] ?? "Normal"}',
-                    style: const TextStyle(fontSize: 18)),
-              ],
+    return WillPopScope(
+      onWillPop: () async {
+        // Save elapsed time before popping
+        if (gameStartTime != null) {
+          final elapsedSoFar = DateTime.now().difference(gameStartTime!);
+          await _saveElapsedTime(pausedDuration + elapsedSoFar);
+        } else {
+          await _saveGame();
+        }
+        return true; // Allow the pop to happen
+      },
+      child: Scaffold(
+        appBar: MyGameAppBar(
+          title: 'Taquin ${gridSize}x$gridSize',
+          onBack: () async {
+            // Save elapsed time before popping
+            if (gameStartTime != null) {
+              final elapsedSoFar = DateTime.now().difference(gameStartTime!);
+              await _saveElapsedTime(pausedDuration + elapsedSoFar);
+            } else {
+              await _saveGame();
+            }
+            if (context.mounted) Navigator.of(context).pop();
+          },
+        ),
+        body: Column(
+          children: [
+            // Game stats
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  Text('Mouvements: $moveCount',
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text('Difficulté: ${settings["difficulty"] ?? "Normal"}',
+                      style: const TextStyle(fontSize: 18)),
+                ],
+              ),
             ),
-          ),
+            const SizedBox(height: 8),
+            StreamBuilder<int>(
+              stream: Stream.periodic(const Duration(seconds: 1), (i) => i),
+              builder: (context, snapshot) {
+                final elapsed = getCurrentElapsed();
+                final formatted = elapsed.toString().split('.').first;
+                return Text(
+                  'Temps écoulé : $formatted',
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold),
+                );
+              },
+            ),
 
-          // Game board
-          imageTiles.isEmpty
-              ? const Expanded(
-                  child: Center(
-                    child: Text(
-                      "Aucune image disponible. Veuillez créer une nouvelle partie.",
-                      style: TextStyle(fontSize: 16),
+            // Game board
+            imageTiles.isEmpty
+                ? const Expanded(
+                    child: Center(
+                      child: Text(
+                        "Aucune image disponible. Veuillez créer une nouvelle partie.",
+                        style: TextStyle(fontSize: 16),
+                      ),
                     ),
-                  ),
-                )
-              : Expanded(
-                  child: Center(
-                    child: AspectRatio(
-                      aspectRatio: 1.0,
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: GridView.builder(
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: gridSize,
-                          ),
-                          itemCount: gridSize * gridSize,
-                          physics: const NeverScrollableScrollPhysics(),
-                          // Inside GridView.builder's itemBuilder function:
-                          itemBuilder: (context, index) {
-                            final tileValue = currentGrid[index];
-                            final isEmptyTile =
-                                tileValue == gridSize * gridSize - 1;
-                            return GestureDetector(
-                              onTap: () {
-                                if (!isCompleted) {
-                                  _makeMove(index);
-                                }
-                              },
-                              child: Container(
-                                margin: const EdgeInsets.all(2),
-                                decoration: BoxDecoration(
-                                  color: isEmptyTile
-                                      ? Colors.transparent
-                                      : Colors.white,
-                                  border: Border.all(
-                                    color: Colors.grey.shade300,
-                                    width: 1,
+                  )
+                : Expanded(
+                    child: Center(
+                      child: AspectRatio(
+                        aspectRatio: 1.0,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: GridView.builder(
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: gridSize,
+                            ),
+                            itemCount: gridSize * gridSize,
+                            physics: const NeverScrollableScrollPhysics(),
+                            // Inside GridView.builder's itemBuilder function:
+                            itemBuilder: (context, index) {
+                              final tileValue = currentGrid[index];
+                              final isEmptyTile =
+                                  tileValue == gridSize * gridSize - 1;
+                              return GestureDetector(
+                                onTap: () {
+                                  if (!isCompleted) {
+                                    _makeMove(index);
+                                  }
+                                },
+                                child: Container(
+                                  margin: const EdgeInsets.all(2),
+                                  decoration: BoxDecoration(
+                                    color: isEmptyTile
+                                        ? Colors.transparent
+                                        : Colors.white,
+                                    border: Border.all(
+                                      color: Colors.grey.shade300,
+                                      width: 1,
+                                    ),
                                   ),
-                                ),
-                                child: isEmptyTile
-                                    ? const SizedBox() // Empty tile
-                                    : imageTiles.isNotEmpty &&
-                                            tileValue < imageTiles.length
-                                        ? Image.memory(
-                                            imageTiles[tileValue],
-                                            fit: BoxFit.cover,
-                                            errorBuilder:
-                                                (context, error, stackTrace) {
-                                              print(
-                                                  'Error loading image: $error');
-                                              // Fallback to colored tile with number
-                                              return Container(
-                                                color: Colors.primaries[
-                                                    tileValue %
-                                                        Colors
-                                                            .primaries.length],
-                                                child: Center(
-                                                  child: Text(
-                                                    '${tileValue + 1}',
-                                                    style: TextStyle(
-                                                      fontSize: 24,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color: Colors.white,
+                                  child: isEmptyTile
+                                      ? const SizedBox() // Empty tile
+                                      : imageTiles.isNotEmpty &&
+                                              tileValue < imageTiles.length
+                                          ? Image.memory(
+                                              imageTiles[tileValue],
+                                              fit: BoxFit.cover,
+                                              errorBuilder:
+                                                  (context, error, stackTrace) {
+                                                print(
+                                                    'Error loading image: $error');
+                                                // Fallback to colored tile with number
+                                                return Container(
+                                                  color: Colors.primaries[
+                                                      tileValue %
+                                                          Colors.primaries
+                                                              .length],
+                                                  child: Center(
+                                                    child: Text(
+                                                      '${tileValue + 1}',
+                                                      style: TextStyle(
+                                                        fontSize: 24,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: Colors.white,
+                                                      ),
                                                     ),
                                                   ),
-                                                ),
-                                              );
-                                            },
-                                          )
-                                        : Container(
-                                            color: Colors.primaries[tileValue %
-                                                Colors.primaries.length],
-                                            child: Center(
-                                              child: Text(
-                                                '${tileValue + 1}',
-                                                style: TextStyle(
-                                                  fontSize: 24,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.white,
+                                                );
+                                              },
+                                            )
+                                          : Container(
+                                              color: Colors.primaries[
+                                                  tileValue %
+                                                      Colors.primaries.length],
+                                              child: Center(
+                                                child: Text(
+                                                  '${tileValue + 1}',
+                                                  style: TextStyle(
+                                                    fontSize: 24,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.white,
+                                                  ),
                                                 ),
                                               ),
                                             ),
-                                          ),
-                              ),
-                            );
-                          },
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-        ],
+          ],
+        ),
       ),
     );
   }
