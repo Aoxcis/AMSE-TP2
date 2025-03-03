@@ -75,31 +75,46 @@ class _Exo5PageState extends State<Exo5Page> {
   Widget _buildGridViewWithImage() {
     return GridView.builder(
       gridDelegate:
-          SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3),
+          SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: _gridSize),
       itemBuilder: (context, index) {
-        int row = index ~/ 3;
-        int col = index % 3;
+        // Calculate row and column based on the current grid size
+        int row = index ~/ _gridSize;
+        int col = index % _gridSize;
+
+        // Calculate the position and size for each tile
+        double tileWidth = 1.0 / _gridSize;
+        double tileHeight = 1.0 / _gridSize;
+
         return Padding(
           padding: const EdgeInsets.all(2.0),
-          child: ClipRect(
-            child: Align(
-              alignment: FractionalOffset(col / 3.0, row / 3.0),
-              widthFactor: 1 / 3.0,
-              heightFactor: 1 / 3.0,
-              child: FractionallySizedBox(
-                widthFactor: 3.0,
-                heightFactor: 3.0,
-                child: Image.asset(
-                  '../../assets/exo2.jpg',
-                  fit: BoxFit.none,
-                  alignment: Alignment(-1 + col * 2 / 2, -1 + row * 2 / 2),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.black, width: 1),
+            ),
+            child: ClipRect(
+              child: FittedBox(
+                fit: BoxFit.fill,
+                child: SizedBox(
+                  width: 100, // Arbitrary base size
+                  height: 100, // Arbitrary base size
+                  child: Transform.scale(
+                    scale: _gridSize.toDouble(),
+                    alignment: Alignment(
+                      -1.0 + 2.0 * col / (_gridSize - 1),
+                      -1.0 + 2.0 * row / (_gridSize - 1),
+                    ),
+                    child: Image.asset(
+                      'assets/exo2.jpg',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
         );
       },
-      itemCount: 9,
+      itemCount: _gridSize * _gridSize,
     );
   }
 
@@ -112,12 +127,36 @@ class _Exo5PageState extends State<Exo5Page> {
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: _gridSize),
             itemBuilder: (context, index) {
+              // Calculate row and column based on the current grid size
+              int row = index ~/ _gridSize;
+              int col = index % _gridSize;
+
               return Padding(
                 padding: const EdgeInsets.all(2.0),
                 child: Container(
-                  color: Color((Random().nextDouble() * 0xFFFFFF).toInt())
-                      .withOpacity(1.0),
-                  child: Center(child: Text('Tile ${index + 1}')),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.black, width: 1),
+                  ),
+                  child: ClipRect(
+                    child: FittedBox(
+                      fit: BoxFit.fill,
+                      child: SizedBox(
+                        width: 100, // Arbitrary base size
+                        height: 100, // Arbitrary base size
+                        child: Transform.scale(
+                          scale: _gridSize.toDouble(),
+                          alignment: Alignment(
+                            -1.0 + 2.0 * col / (_gridSize - 1),
+                            -1.0 + 2.0 * row / (_gridSize - 1),
+                          ),
+                          child: Image.asset(
+                            'assets/exo2.jpg',
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               );
             },
