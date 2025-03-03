@@ -49,6 +49,17 @@ class _HomePageState extends State<HomePage> {
               },
               child: const Text('Daily'),
             ),
+            const SizedBox(height: 100),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                fixedSize: const Size(300, 150),
+                textStyle: const TextStyle(fontSize: 30),
+              ),
+              onPressed: () {
+                Navigator.pushNamed(context, '/exercices');
+              },
+              child: const Text('Exercices'),
+            ),
           ],
         ),
       ),

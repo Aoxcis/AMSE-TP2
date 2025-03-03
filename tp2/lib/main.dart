@@ -9,6 +9,11 @@ import 'package:tp2/pages/settings_page.dart';
 import 'package:tp2/providers/theme_provider.dart';
 import 'package:tp2/pages/game_page.dart';
 import 'package:tp2/pages/game_end_page.dart';
+import 'package:tp2/pages/exercices_page.dart';
+import 'package:tp2/pages/exercices/exo2.dart';
+import 'package:tp2/pages/exercices/exo4.dart';
+import 'package:tp2/pages/exercices/exo5.dart';
+import 'package:tp2/pages/exercices/exo6.dart';
 
 void main() {
   runApp(
@@ -49,6 +54,11 @@ class MyApp extends StatelessWidget {
               return const HomePage(); // Fallback if wrong arguments
             },
             '/game_end': (context) => const GameEndPage(),
+            '/exercices': (context) => ExercicesPage(),
+            '/exo2': (context) => Exo2Page(),
+            '/exo4': (context) => Exo4Page(),
+            '/exo5': (context) => Exo5Page(),
+            '/exo6': (context) => Exo6Page(),
           },
         );
       },
