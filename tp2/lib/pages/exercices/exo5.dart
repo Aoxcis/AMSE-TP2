@@ -5,10 +5,10 @@ class Exo5Page extends StatefulWidget {
   const Exo5Page({super.key});
 
   @override
-  _Exo5PageState createState() => _Exo5PageState();
+  Exo5PageState createState() => Exo5PageState();
 }
 
-class _Exo5PageState extends State<Exo5Page> {
+class Exo5PageState extends State<Exo5Page> {
   int _currentPage = 0;
   int _gridSize = 3;
 
