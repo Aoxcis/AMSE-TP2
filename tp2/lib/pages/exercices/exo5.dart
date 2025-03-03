@@ -1,0 +1,181 @@
+import 'package:flutter/material.dart';
+import 'dart:math';
+
+class Exo5Page extends StatefulWidget {
+  const Exo5Page({super.key});
+
+  @override
+  _Exo5PageState createState() => _Exo5PageState();
+}
+
+class _Exo5PageState extends State<Exo5Page> {
+  int _currentPage = 0;
+  int _gridSize = 3;
+
+  void _selectPage(int page) {
+    setState(() {
+      _currentPage = page;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Exercice 5'),
+        actions: [
+          PopupMenuButton<int>(
+            onSelected: _selectPage,
+            itemBuilder: (context) => [
+              PopupMenuItem(value: 0, child: Text('Page 1')),
+              PopupMenuItem(value: 1, child: Text('Page 2')),
+              PopupMenuItem(value: 2, child: Text('Page 3')),
+            ],
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: _buildPageContent(),
+      ),
+    );
+  }
+
+  Widget _buildPageContent() {
+    switch (_currentPage) {
+      case 0:
+        return _buildGridViewWithTiles();
+      case 1:
+        return _buildGridViewWithImage();
+      case 2:
+        return _buildSliderPage();
+      default:
+        return Center(child: Text('Page not found'));
+    }
+  }
+
+  Widget _buildGridViewWithTiles() {
+    return GridView.builder(
+      gridDelegate:
+          SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3),
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.all(2.0),
+          child: Container(
+            color: Color((Random().nextDouble() * 0xFFFFFF).toInt())
+                .withAlpha(255),
+            child: Center(child: Text('Tile ${index + 1}')),
+          ),
+        );
+      },
+      itemCount: 9,
+    );
+  }
+
+  Widget _buildGridViewWithImage() {
+    return GridView.builder(
+      gridDelegate:
+          SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: _gridSize),
+      itemBuilder: (context, index) {
+        // Calculate row and column based on the current grid size
+        int row = index ~/ _gridSize;
+        int col = index % _gridSize;
+
+        // Calculate the position and size for each tile
+        double tileWidth = 1.0 / _gridSize;
+        double tileHeight = 1.0 / _gridSize;
+
+        return Padding(
+          padding: const EdgeInsets.all(2.0),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.black, width: 1),
+            ),
+            child: ClipRect(
+              child: FittedBox(
+                fit: BoxFit.fill,
+                child: SizedBox(
+                  width: 100, // Arbitrary base size
+                  height: 100, // Arbitrary base size
+                  child: Transform.scale(
+                    scale: _gridSize.toDouble(),
+                    alignment: Alignment(
+                      -1.0 + 2.0 * col / (_gridSize - 1),
+                      -1.0 + 2.0 * row / (_gridSize - 1),
+                    ),
+                    child: Image.asset(
+                      'assets/exo2.jpg',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      itemCount: _gridSize * _gridSize,
+    );
+  }
+
+  Widget _buildSliderPage() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Expanded(
+          child: GridView.builder(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: _gridSize),
+            itemBuilder: (context, index) {
+              // Calculate row and column based on the current grid size
+              int row = index ~/ _gridSize;
+              int col = index % _gridSize;
+
+              return Padding(
+                padding: const EdgeInsets.all(2.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.black, width: 1),
+                  ),
+                  child: ClipRect(
+                    child: FittedBox(
+                      fit: BoxFit.fill,
+                      child: SizedBox(
+                        width: 100, // Arbitrary base size
+                        height: 100, // Arbitrary base size
+                        child: Transform.scale(
+                          scale: _gridSize.toDouble(),
+                          alignment: Alignment(
+                            -1.0 + 2.0 * col / (_gridSize - 1),
+                            -1.0 + 2.0 * row / (_gridSize - 1),
+                          ),
+                          child: Image.asset(
+                            'assets/exo2.jpg',
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+            itemCount: _gridSize * _gridSize,
+          ),
+        ),
+        Slider(
+          value: _gridSize.toDouble(),
+          min: 2,
+          max: 10,
+          divisions: 8,
+          label: 'Grid Size: $_gridSize',
+          onChanged: (value) {
+            setState(() {
+              _gridSize = value.toInt();
+            });
+          },
+        ),
+      ],
+    );
+  }
+}
