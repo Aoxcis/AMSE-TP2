@@ -64,8 +64,6 @@ class _CreateGamePageState extends State<CreateGamePage> {
       final gameCreationService = GameCreationService();
       final gameData = await gameCreationService.createGame(gameOptions);
 
-      print("DEBUG: Game created with structure: $gameData");
-
       // Save the game to get an ID
       final id = await gameCreationService.storageService
           .saveGame(-1, gameData['settings'], gameData['current']);
@@ -263,7 +261,7 @@ class _CreateGamePageState extends State<CreateGamePage> {
         image: FileImage(_selectedImage!),
         fit: BoxFit.cover,
       );
-    }else if (_cameraImage != null) {
+    } else if (_cameraImage != null) {
       return DecorationImage(
         image: FileImage(_cameraImage!),
         fit: BoxFit.cover,

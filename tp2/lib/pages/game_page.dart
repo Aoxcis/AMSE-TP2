@@ -251,7 +251,6 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
       'currentImage': imageTiles,
       'elapsedTimeMs': getCurrentElapsed().inMilliseconds,
     };
-    print('DEBUG: Saving game state: $currentState');
     await _storage.saveGame(gameId, settings, currentState);
   }
 

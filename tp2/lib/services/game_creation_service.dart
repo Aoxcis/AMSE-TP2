@@ -53,7 +53,8 @@ class GameCreationService {
 
   /// Slices the provided image into a grid of tiles
   Future<List<Uint8List>> _sliceImage(dynamic imageSource, int gridSize) async {
-    if (imageSource == null || (imageSource is int && (imageSource < 1 || imageSource > 10))) {
+    if (imageSource == null ||
+        (imageSource is int && (imageSource < 1 || imageSource > 10))) {
       return _generatePlaceholderImages(gridSize);
     }
 
@@ -65,7 +66,8 @@ class GameCreationService {
       // Get the source image based on different input types
       if (imageSource is int) {
         // Use a predefined sample image
-        final assetPath = 'assets/images/sample_${imageSource.clamp(1, 10)}.jpg';
+        final assetPath =
+            'assets/images/sample_${imageSource.clamp(1, 10)}.jpg';
         final ByteData data = await rootBundle.load(assetPath);
         sourceImage = img.decodeImage(data.buffer.asUint8List());
       } else if (imageSource is File) {
@@ -78,8 +80,7 @@ class GameCreationService {
         if (response.statusCode == 200) {
           sourceImage = img.decodeImage(response.bodyBytes);
         }
-      }
-      else if (imageSource is String && !imageSource.startsWith('http')) {
+      } else if (imageSource is String && !imageSource.startsWith('http')) {
         // Handle file path string
         final file = File(imageSource);
         final bytes = await file.readAsBytes();
@@ -95,15 +96,15 @@ class GameCreationService {
       // Make sure image is square
       int minDimension = min(sourceImage.width, sourceImage.height);
       img.Image squareImage = img.copyCrop(
-        sourceImage,
-        (sourceImage.width - minDimension) ~/ 2,
-        (sourceImage.height - minDimension) ~/ 2,
-        minDimension,
-        minDimension
-      );
+          sourceImage,
+          (sourceImage.width - minDimension) ~/ 2,
+          (sourceImage.height - minDimension) ~/ 2,
+          minDimension,
+          minDimension);
 
       // Resize if needed
-      img.Image resizedImage = img.copyResize(squareImage, width: 300, height: 300);
+      img.Image resizedImage =
+          img.copyResize(squareImage, width: 300, height: 300);
 
       // Calculate tile size
       int tileDimension = resizedImage.width ~/ gridSize;
@@ -114,16 +115,11 @@ class GameCreationService {
         for (int x = 0; x < gridSize; x++) {
           // Skip the last tile (will be blank)
           if (x == gridSize - 1 && y == gridSize - 1) continue;
-          
+
           // Copy the tile portion
-          img.Image tilePart = img.copyCrop(
-            resizedImage,
-            x * tileDimension,
-            y * tileDimension,
-            tileDimension,
-            tileDimension
-          );
-          
+          img.Image tilePart = img.copyCrop(resizedImage, x * tileDimension,
+              y * tileDimension, tileDimension, tileDimension);
+
           // Convert to PNG bytes
           List<int> pngBytes = img.encodePng(tilePart);
           tiles.add(Uint8List.fromList(pngBytes));
