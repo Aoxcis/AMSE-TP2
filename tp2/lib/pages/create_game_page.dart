@@ -263,13 +263,18 @@ class _CreateGamePageState extends State<CreateGamePage> {
         image: FileImage(_selectedImage!),
         fit: BoxFit.cover,
       );
+    }else if (_cameraImage != null) {
+      return DecorationImage(
+        image: FileImage(_cameraImage!),
+        fit: BoxFit.cover,
+      );
     }
     return null;
   }
 
   // Helper method to get the image widget
   Widget _getImageWidget() {
-    if (_isRandomImage || _selectedImage != null) {
+    if (_isRandomImage || _selectedImage != null || _cameraImage != null) {
       return GridOverlay(gridSize: _gridSize);
     } else {
       return Center(
