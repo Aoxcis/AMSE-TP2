@@ -14,7 +14,7 @@ class GamePage extends StatefulWidget {
   State<GamePage> createState() => _GamePageState();
 }
 
-class _GamePageState extends State<GamePage> {
+class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   List<int> currentGrid = [];
   List<Uint8List> imageTiles = [];
   int gridSize = 3;
@@ -22,14 +22,23 @@ class _GamePageState extends State<GamePage> {
   bool isCompleted = false;
   Map<String, dynamic> settings = {};
   final StorageService _storage = StorageService();
+
   bool _isLoading = true;
   String _errorMessage = '';
-  bool _mounted = false; // Track if widget is mounted
+  bool _mounted = false;
+
+  // Using Stopwatch to manage elapsed time
+  final Stopwatch _stopwatch = Stopwatch();
+  // _baseElapsed stores the accumulated time during pauses
+  Duration _baseElapsed = Duration.zero;
 
   @override
   void initState() {
     super.initState();
-    // Use Future.microtask to schedule this after the widget is built
+    WidgetsBinding.instance.addObserver(this);
+    // Start the stopwatch for a new game
+    _stopwatch.start();
+    // Load game data after the widget is built
     Future.microtask(() {
       if (mounted) {
         _loadGameData();
@@ -39,8 +48,41 @@ class _GamePageState extends State<GamePage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _mounted = false;
+    _saveTimeOnExit();
     super.dispose();
+  }
+
+  Future<void> _saveTimeOnExit() async {
+    // Stop the stopwatch and add its elapsed time to _baseElapsed if running
+    if (_stopwatch.isRunning) {
+      _stopwatch.stop();
+      _baseElapsed += _stopwatch.elapsed;
+      _stopwatch.reset();
+    }
+    await _saveGame();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      if (_stopwatch.isRunning) {
+        _stopwatch.stop();
+        _baseElapsed += _stopwatch.elapsed;
+        _stopwatch.reset();
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      if (!isCompleted && !_stopwatch.isRunning) {
+        _stopwatch.start();
+      }
+    }
+  }
+
+  Map<String, dynamic> getGameInfo() {
+    return {
+      'nbCoups': moveCount,
+    };
   }
 
   Future<void> _loadGameData() async {
@@ -48,7 +90,6 @@ class _GamePageState extends State<GamePage> {
 
     try {
       final gameData = await _storage.loadGame(widget.gameId);
-      print('DEBUG: Loaded game data: $gameData');
 
       if (gameData.isEmpty || gameData['current'] == null) {
         if (!mounted) return;
@@ -61,7 +102,7 @@ class _GamePageState extends State<GamePage> {
 
       final currentData = gameData['current'];
 
-      // Handle null grid data gracefully
+      // Load grid data
       List<int> gridData = [];
       if (currentData['currentGrid'] != null) {
         gridData = List<int>.from(currentData['currentGrid']);
@@ -75,11 +116,10 @@ class _GamePageState extends State<GamePage> {
         return;
       }
 
-      // Process image data with null checks
+      // Process image data
       List<Uint8List> processedImageTiles = [];
       if (currentData['currentImage'] != null) {
         final imageData = currentData['currentImage'];
-
         if (imageData is List) {
           for (var item in imageData) {
             if (item is String) {
@@ -94,7 +134,24 @@ class _GamePageState extends State<GamePage> {
         }
       }
 
-      // Check if widget is still mounted before updating state
+      // Load saved elapsed time
+      bool isNewGame = currentData['isCompleted'] != true &&
+          currentData['elapsedTimeMs'] != null;
+      int savedElapsedMs = currentData['elapsedTimeMs'] ?? 0;
+
+      if (isNewGame) {
+        _baseElapsed = Duration(milliseconds: savedElapsedMs);
+        _stopwatch.reset();
+        _stopwatch.start();
+      } else if (currentData['isCompleted'] == true) {
+        _baseElapsed = Duration(milliseconds: savedElapsedMs);
+        _stopwatch.reset();
+      } else {
+        _baseElapsed = Duration.zero;
+        _stopwatch.reset();
+        _stopwatch.start();
+      }
+
       if (!mounted) return;
 
       setState(() {
@@ -122,103 +179,80 @@ class _GamePageState extends State<GamePage> {
     super.didChangeDependencies();
   }
 
-  // Check if a move is valid based on empty space position
   bool _isValidMove(int tileIndex) {
-    // Find the empty tile (which should be gridSize*gridSize-1)
     int emptyIndex = currentGrid.indexOf(gridSize * gridSize - 1);
-
-    // Calculate grid positions
     int tileRow = tileIndex ~/ gridSize;
     int tileCol = tileIndex % gridSize;
     int emptyRow = emptyIndex ~/ gridSize;
     int emptyCol = emptyIndex % gridSize;
-
-    // Valid move if tile is adjacent to empty space
     return (tileRow == emptyRow &&
             (tileCol == emptyCol - 1 || tileCol == emptyCol + 1)) ||
         (tileCol == emptyCol &&
             (tileRow == emptyRow - 1 || tileRow == emptyRow + 1));
   }
 
-  // Make a move by swapping a tile with the empty space
   void _makeMove(int tileIndex) {
     if (!_isValidMove(tileIndex)) return;
 
     setState(() {
-      // Find the empty tile
       int emptyIndex = currentGrid.indexOf(gridSize * gridSize - 1);
-
-      // Swap the tile with empty space
       int temp = currentGrid[tileIndex];
       currentGrid[tileIndex] = currentGrid[emptyIndex];
       currentGrid[emptyIndex] = temp;
-
       moveCount++;
-
-      // Check if puzzle is solved
       _checkCompletion();
     });
-
-    // Save game state
     _saveGame();
   }
 
-  // Check if the puzzle is completed
   void _checkCompletion() {
     bool solved = true;
-
-    // Puzzle is solved if all tiles are in order (0,1,2,...,n-1)
     for (int i = 0; i < currentGrid.length - 1; i++) {
       if (currentGrid[i] != i) {
         solved = false;
         break;
       }
     }
-
     if (solved) {
+      // Stop the stopwatch when game is completed
+      if (_stopwatch.isRunning) {
+        _stopwatch.stop();
+        _baseElapsed += _stopwatch.elapsed;
+        _stopwatch.reset();
+      }
+
       setState(() {
         isCompleted = true;
       });
 
-      // Show completion dialog
-      _showCompletionDialog();
+      // Save the game before navigating
+      _saveGame();
+
+      // Pass move count and elapsed time to GameEndPage
+      Navigator.pushNamed(context, '/game_end', arguments: {
+        'moveCount': moveCount,
+        'elapsedTime': getCurrentElapsed(),
+        'image': imageTiles,
+      });
     }
   }
 
-  // Save game state
+  // Returns total elapsed time: saved time plus current stopwatch time.
+  Duration getCurrentElapsed() {
+    return _baseElapsed + _stopwatch.elapsed;
+  }
+
   Future<void> _saveGame() async {
     final gameId = widget.gameId;
-
-    // Don't try to save the image data each time - too large and unnecessary
-    // Once loaded, we can keep using the same image tiles
     Map<String, dynamic> currentState = {
       'currentGrid': currentGrid,
       'currentMoves': moveCount,
       'isCompleted': isCompleted,
-      // Only send image data on first save or if we have to
       'currentImage': imageTiles,
+      'elapsedTimeMs': getCurrentElapsed().inMilliseconds,
     };
-
+    print('DEBUG: Saving game state: $currentState');
     await _storage.saveGame(gameId, settings, currentState);
-  }
-
-  // Show completion dialog
-  void _showCompletionDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Félicitations!'),
-        content: Text('Vous avez résolu le puzzle en $moveCount coups.'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pushNamed(context, '/game_end');
-            },
-            child: const Text('fenetre de fin de jeu'),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -226,9 +260,7 @@ class _GamePageState extends State<GamePage> {
     if (_isLoading) {
       return Scaffold(
         appBar: MyGameAppBar(title: 'Chargement...'),
-        body: const Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -247,7 +279,7 @@ class _GamePageState extends State<GamePage> {
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.of(context).pop();
+                  Navigator.pushNamed(context, '/home');
                 },
                 child: const Text('Retour'),
               ),
@@ -258,7 +290,19 @@ class _GamePageState extends State<GamePage> {
     }
 
     return Scaffold(
-      appBar: MyGameAppBar(title: 'Taquin ${gridSize}x$gridSize'),
+      appBar: MyGameAppBar(
+        title: 'Taquin ${gridSize}x$gridSize',
+        onBack: () async {
+          if (_stopwatch.isRunning) {
+            _stopwatch.stop();
+            _baseElapsed += _stopwatch.elapsed;
+            _stopwatch.reset();
+          }
+          await _saveGame();
+          // Instead of popping, push a named route (e.g., '/home')
+          if (context.mounted) Navigator.pushNamed(context, '/home');
+        },
+      ),
       body: Column(
         children: [
           // Game stats
@@ -275,7 +319,19 @@ class _GamePageState extends State<GamePage> {
               ],
             ),
           ),
-
+          const SizedBox(height: 8),
+          StreamBuilder<int>(
+            stream: Stream.periodic(const Duration(seconds: 1), (i) => i),
+            builder: (context, snapshot) {
+              final elapsed = getCurrentElapsed();
+              final formatted = elapsed.toString().split('.').first;
+              return Text(
+                'Temps écoulé : $formatted',
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              );
+            },
+          ),
           // Game board
           imageTiles.isEmpty
               ? const Expanded(
@@ -299,7 +355,6 @@ class _GamePageState extends State<GamePage> {
                           ),
                           itemCount: gridSize * gridSize,
                           physics: const NeverScrollableScrollPhysics(),
-                          // Inside GridView.builder's itemBuilder function:
                           itemBuilder: (context, index) {
                             final tileValue = currentGrid[index];
                             final isEmptyTile =
@@ -322,7 +377,7 @@ class _GamePageState extends State<GamePage> {
                                   ),
                                 ),
                                 child: isEmptyTile
-                                    ? const SizedBox() // Empty tile
+                                    ? const SizedBox()
                                     : imageTiles.isNotEmpty &&
                                             tileValue < imageTiles.length
                                         ? Image.memory(
@@ -332,7 +387,6 @@ class _GamePageState extends State<GamePage> {
                                                 (context, error, stackTrace) {
                                               print(
                                                   'Error loading image: $error');
-                                              // Fallback to colored tile with number
                                               return Container(
                                                 color: Colors.primaries[
                                                     tileValue %
@@ -341,7 +395,7 @@ class _GamePageState extends State<GamePage> {
                                                 child: Center(
                                                   child: Text(
                                                     '${tileValue + 1}',
-                                                    style: TextStyle(
+                                                    style: const TextStyle(
                                                       fontSize: 24,
                                                       fontWeight:
                                                           FontWeight.bold,
@@ -358,7 +412,7 @@ class _GamePageState extends State<GamePage> {
                                             child: Center(
                                               child: Text(
                                                 '${tileValue + 1}',
-                                                style: TextStyle(
+                                                style: const TextStyle(
                                                   fontSize: 24,
                                                   fontWeight: FontWeight.bold,
                                                   color: Colors.white,

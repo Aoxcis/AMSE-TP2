@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 class MyGameAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
+  final Future<void> Function()? onBack;
 
-  const MyGameAppBar({Key? key, required this.title}) : super(key: key);
+  MyGameAppBar({Key? key, required this.title, this.onBack}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -11,13 +12,14 @@ class MyGameAppBar extends StatelessWidget implements PreferredSizeWidget {
       leading: Builder(
         builder: (BuildContext context) {
           return IconButton(
-            icon: const Icon(Icons.home),
-            onPressed: () { 
-              Navigator.pushNamed(
-                context,
-                '/home',
-              );
-            },
+            icon: Icon(Icons.home),
+            onPressed: onBack != null
+                ? () async {
+                    await onBack!();
+                  }
+                : () {
+                    Navigator.of(context).pop();
+                  },
           );
         },
       ),
