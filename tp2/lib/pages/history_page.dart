@@ -4,6 +4,9 @@ import 'package:tp2/services/game_creation_service.dart';
 import 'package:tp2/widgets/nav_bar.dart';
 import '../services/storage.dart';
 import 'game_page.dart'; // Import the game page
+import 'dart:io';
+import 'dart:typed_data';
+import 'dart:convert';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -99,10 +102,7 @@ class _HistoryPageState extends State<HistoryPage>
                   children: [
                     Expanded(
                       child: imageUrl != null && imageUrl.isNotEmpty
-                          ? Image.network(
-                              imageUrl,
-                              fit: BoxFit.contain,
-                            )
+                          ? _buildImage(imageUrl)
                           : const Center(
                               child: Text('Pas d\'image'),
                             ),
@@ -233,5 +233,74 @@ class _HistoryPageState extends State<HistoryPage>
       'ongoing': ongoing,
       'completed': completed,
     };
+  }
+
+  Widget _buildImage(String imageData) {
+    // First, try to load as a Base64 string
+    try {
+      // Check if it looks like a base64 string
+      if (imageData.contains(RegExp(r'^[A-Za-z0-9+/=]+$'))) {
+        Uint8List imageBytes = base64Decode(imageData);
+        return Image.memory(
+          imageBytes,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) {
+            return _tryAlternativeFormats(imageData);
+          },
+        );
+      }
+      return _tryAlternativeFormats(imageData);
+    } catch (e) {
+      return _tryAlternativeFormats(imageData);
+    }
+  }
+
+  Widget _tryAlternativeFormats(String imageData) {
+    // Try to load as a network URL
+    if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
+      return Image.network(
+        imageData,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          return _buildErrorImage();
+        },
+      );
+    }
+    // Try to load as a file path
+    else if (imageData.startsWith('/')) {
+      return Image.file(
+        File(imageData),
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          return _buildErrorImage();
+        },
+      );
+    }
+    // Try as asset path
+    else if (imageData.startsWith('assets/')) {
+      return Image.asset(
+        imageData,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          return _buildErrorImage();
+        },
+      );
+    }
+    // If we don't recognize the format, show error
+    else {
+      return _buildErrorImage();
+    }
+  }
+
+  Widget _buildErrorImage() {
+    return Container(
+      color: Colors.grey[200],
+      child: const Center(
+        child: Text(
+          'Image non disponible',
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
   }
 }

@@ -87,7 +87,7 @@ class _Exo2PageState extends State<Exo2Page> {
                         ),
                       ],
                     ),
-                    child: Image.asset('../../assets/exo2.jpg'),
+                    child: Image.asset('assets/exo2.jpg'),
                   ),
                 ),
               ),

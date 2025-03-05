@@ -38,7 +38,7 @@ class Tile {
 }
 
 Tile tile = Tile(
-    imageURL: '../../assets/exo2.jpg', alignment: Alignment(0, 0));
+    imageURL: 'assets/exo2.jpg', alignment: Alignment(0, 0));
 
 class DisplayTileWidget extends StatelessWidget {
   const DisplayTileWidget({super.key});
@@ -54,7 +54,7 @@ class DisplayTileWidget extends StatelessWidget {
             child: Container(
                 margin: EdgeInsets.all(20.0),
                 child: createTileWidgetFrom(tile))),
-        SizedBox(height: 200, child: Image.asset('../../assets/exo2.jpg'))
+        SizedBox(height: 200, child: Image.asset('assets/exo2.jpg'))
       ])),
     );
   }
