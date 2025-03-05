@@ -51,28 +51,40 @@ class _DailyGamePageState extends State<DailyGamePage> {
   }
 
   Future<void> _launchDailyGame(DateTime date) async {
-    final gameOptions = {
-      'gridSize': 3,
-      'difficulty': 'Facile',
-      'image': 'https://picsum.photos/300/300',
-      'isDaily': true,
-      'date': date.toIso8601String(),
-    };
+    final dailyGameId = date.day + 100 * date.month;
 
     try {
+      // Check if game already exists for this date
+      final existingGame = await _storage.loadGame(dailyGameId);
+
+      if (existingGame.isNotEmpty) {
+        // Game already exists, just launch it
+        Navigator.pushNamed(context, '/game',
+            arguments: {'gameId': dailyGameId});
+        return;
+      }
+
+      // Game doesn't exist yet, create a new one
+      final gameOptions = {
+        'gridSize': 3,
+        'difficulty': 'Facile',
+        'image': 'https://picsum.photos/id/$dailyGameId/300/300',
+        'isDaily': true,
+        'date': date.toIso8601String(),
+      };
+
       final gameData = await _gameCreationService.createGame(gameOptions);
       final gameId = await _storage.saveGame(
-        -1, // New game
+        dailyGameId, // Daily game ID
         gameData['settings'],
         gameData['current'],
       );
 
       Navigator.pushNamed(context, '/game', arguments: {'gameId': gameId});
     } catch (e) {
-      print("ERROR creating daily game: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erreur lors de la création du jeu quotidien: $e'),
+          content: Text('Erreur lors du traitement du jeu quotidien: $e'),
           backgroundColor: Colors.red,
         ),
       );
