@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:tp2/widgets/game_app_bar.dart';
 import 'package:tp2/services/storage.dart';
 import 'dart:convert';
+
 import 'dart:math' show sqrt;
 
 class GamePage extends StatefulWidget {
@@ -213,6 +214,7 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
         break;
       }
     }
+    // In your _checkCompletion() method in GamePage:
     if (solved) {
       // Stop the stopwatch when game is completed
       if (_stopwatch.isRunning) {
@@ -228,11 +230,12 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
       // Save the game before navigating
       _saveGame();
 
-      // Pass move count and elapsed time to GameEndPage
+      // Pass all required data (including gameId)
       Navigator.pushNamed(context, '/game_end', arguments: {
         'moveCount': moveCount,
         'elapsedTime': getCurrentElapsed(),
         'image': imageTiles,
+        'gameId': widget.gameId, // Add this to pass the game ID
       });
     }
   }
