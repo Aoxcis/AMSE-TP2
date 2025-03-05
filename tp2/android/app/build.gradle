@@ -41,12 +41,14 @@ android {
         }
     } */
 
+/*    
     buildTypes {
-        release {
-            signingConfig signingConfigs.release
+            release {
+                signingConfig signingConfigs.release
+            }
         }
-    }
-}
+    } 
+*/
 
 flutter {
     source = "../.."
