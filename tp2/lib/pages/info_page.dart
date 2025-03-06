@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class InfoPage extends StatefulWidget {
   const InfoPage({super.key});
@@ -90,10 +91,15 @@ class _InfoPageState extends State<InfoPage> {
                       ?.copyWith(fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
-                Text(
-                  'Que dalle pour l\'instant',
-                  style: Theme.of(context).textTheme.bodyLarge,
-                  textAlign: TextAlign.center,
+                InkWell(
+                  child: Text(
+                    'Les images aléatoires sont issues de l\'API Picsum \n https://picsum.photos',
+                    style: Theme.of(context).textTheme.bodyLarge,
+                    textAlign: TextAlign.center,
+                  ),
+                  onTap: () {
+                    launch('https://picsum.photos');
+                  },
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton.icon(
