@@ -176,8 +176,6 @@ class _HistoryPageState extends State<HistoryPage>
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                Navigator.pushNamed(context, '/game',
-                    arguments: {'gameId': gameId});
               },
               child: const Text('Non'),
             ),
