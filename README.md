@@ -95,6 +95,17 @@ Taquin est une application mobile développée avec Flutter qui propose le cél�
 - **Accès à la caméra/galerie refusé** : Accordez les autorisations requises dans les paramètres de votre appareil
 - **Erreurs de compilation** : Assurez-vous que le chemin JDK dans `gradle.properties` est correct
 
+## Installation rapide
+
+Pour tester l'application sans avoir à la compiler, un fichier APK pré-compilé est disponible à la racine du projet. Cette version inclut toutes les fonctionnalités, notamment l'accès à la caméra et à la galerie de photos.
+
+#### Instructions pour l'installation :
+
+1. Téléchargez le fichier APK depuis la racine du projet
+2. Sur votre appareil Android, autorisez l'installation d'applications provenant de sources inconnues dans les paramètres
+3. Ouvrez le fichier APK téléchargé pour lancer l'installation
+4. Une fois installée, accordez (si nécessaire) les autorisations nécessaires à l'application (caméra, galerie, etc.)
+
 ## Crédits
 
 Développé par Grégoire PAUL et Pierre PROVOST - 2025
