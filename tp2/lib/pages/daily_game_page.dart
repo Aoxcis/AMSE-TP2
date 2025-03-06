@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:tp2/services/game_creation_service.dart';
 import 'package:tp2/services/storage.dart';
+import 'dart:math';
 
 class DailyGamePage extends StatefulWidget {
   const DailyGamePage({super.key});
@@ -52,6 +53,7 @@ class _DailyGamePageState extends State<DailyGamePage> {
 
   Future<void> _launchDailyGame(DateTime date) async {
     final dailyGameId = date.day + 100 * date.month;
+    final random = Random();
 
     try {
       // Check if game already exists for this date
@@ -66,8 +68,12 @@ class _DailyGamePageState extends State<DailyGamePage> {
 
       // Game doesn't exist yet, create a new one
       final gameOptions = {
-        'gridSize': 3,
-        'difficulty': 'Facile',
+        'gridSize': random.nextInt(4) + 2, // Random grid size between 3 and 5
+        'difficulty': [
+          'Facile',
+          'Moyen',
+          'Difficile'
+        ][random.nextInt(3)], // Random difficulty
         'image': 'https://picsum.photos/id/$dailyGameId/300/300',
         'isDaily': true,
         'date': date.toIso8601String(),
