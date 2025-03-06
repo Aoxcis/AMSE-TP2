@@ -1,102 +1,34 @@
-# Taquin - Jeu de Puzzle Coulissant
+# AMSE-TP2
 
-## Description
+## TODO
+**add gradle.propreties in android folder with this code**
 
-Taquin est une application mobile développée avec Flutter qui propose le célèbre jeu de puzzle coulissant où vous devez reconstituer une image en déplaçant des tuiles.
+```
+org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=2G -XX:+HeapDumpOnOutOfMemoryError
+android.useAndroidX=true
+android.enableJetifier=true
+org.gradle.java.home=your_java17_path
+```
 
-## Fonctionnalités
+## To deploy in apk or appbundle signed
 
-- **Différents niveaux de difficulté** : Facile, Normal, Difficile
-- **Personnalisation du jeu** : Choisissez parmi différentes tailles de grille (3x3, 4x4, 5x5, etc.)
-- **Sources d'images multiples** :
-    - Images prédéfinies aléatoires
-    - Photos de votre galerie
-    - Photos prises avec l'appareil photo
-- **Thème clair/sombre** : Personnalisez l'apparence de l'application
-- **Statistiques de jeu** : Suivi du nombre de mouvements et du temps écoulé
-- **Sauvegarde automatique** : Reprenez votre partie là où vous l'avez laissée
+# create the keystore file
 
-## Installation
+execute this command in powershell : 
+```
+keytool -genkey -v -keystore $env:USERPROFILE\upload-keystore.jks `
+        -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 `
+        -alias upload
+```
 
-### Prérequis
 
-- Flutter SDK (version 3.0.0 ou supérieure)
-- Android Studio ou VS Code avec les extensions Flutter
-- Java JDK 17 ou supérieur
+# create key.properties file in android folder
 
-### Configuration
+code : 
 
-1. **Clonez le dépôt**
-    
-    git clone https://github.com/votre-utilisateur/AMSE-TP2.git
-    
-    cd AMSE-TP2/tp2
-    
-2. **Installez les dépendances**
-    
-    flutter pub get
-    
-3. **Configuration Android**
-
-    Java 17 est nécessaire
-    
-    Créez un fichier `gradle.properties` dans le dossier `android` avec le contenu suivant :
-    
-    org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=2G -XX:+HeapDumpOnOutOfMemoryError
-    
-    android.useAndroidX=true
-    
-    android.enableJetifier=true
-    
-    org.gradle.java.home=C:/Program Files/Java/jdk-17
-    
-    Remplacez le chemin Java par celui de votre installation.
-    
-4. **Lancer l'application**
-    
-    flutter run
-    
-
-## Comment jouer
-
-1. **Démarrer une partie** : Choisissez une image et les paramètres de jeu (taille de grille et difficulté)
-2. **Déplacer les tuiles** : Appuyez sur une tuile adjacente à l'espace vide pour la déplacer
-3. **Objectif** : Recréez l'image originale en réarrangeant les tuiles dans le bon ordre
-4. **Victoire** : Le jeu est terminé lorsque toutes les tuiles sont dans leur position d'origine
-
-## Déploiement
-
-### Générer un APK signé
-
-1. **Créer un keystore** :
-    
-    keytool -genkey -v -keystore %USERPROFILE%\upload-keystore.jks -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 -alias upload
-    
-2. **Configurer le keystore** :
-    
-    Créez un fichier `key.properties` dans le dossier `android` :
-	
-    storePassword=votre_mot_de_passe
-    
-    keyPassword=votre_mot_de_passe
-    
-    keyAlias=upload
-    
-    storeFile=C:/Users/votre_nom/upload-keystore.jks
-    
-3. **Générer l'APK** :
-    
-    flutter build apk --release
-    
-
-## Résolution des problèmes courants
-
-- **Images aléatoires ne s'affichant pas** : Vérifiez votre connexion internet et les autorisations réseau
-- **Accès à la caméra/galerie refusé** : Accordez les autorisations requises dans les paramètres de votre appareil
-- **Erreurs de compilation** : Assurez-vous que le chemin JDK dans `gradle.properties` est correct
-
-## Crédits
-
-Développé par Grégoire PAUL et Pierre PROVOST - 2025
-
-Licence MIT
+```
+storePassword=your_password
+keyPassword=your_password
+keyAlias=upload
+storeFile=C:/Users/username/upload-keystore.jks
+```
